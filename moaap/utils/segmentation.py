@@ -13,6 +13,7 @@ import psutil
 from collections import defaultdict, deque
 import matplotlib.patches as mpatches
 import multiprocessing as mp
+from multiprocessing import shared_memory
 from scipy.spatial import cKDTree
 from moaap.utils.object_props import clean_up_objects, ConnectLon_on_timestep
 
@@ -649,8 +650,8 @@ def watershed_3d_overlap_parallel(
     mintime=24,
     connectLon=0,
     extend_size_ratio=0.25,
-    n_chunks_lat=1,
-    n_chunks_lon=1,
+    n_chunks_lat=2,
+    n_chunks_lon=2,
     overlap_cells=None
 ):
     """
@@ -739,32 +740,51 @@ def watershed_3d_overlap_parallel(
     
     nt, nlat, nlon = data.shape
     
-    # Calculate chunk boundaries with overlap
-    lat_chunks = _calculate_chunk_boundaries(nlat, n_chunks_lat, overlap_cells)
-    lon_chunks = _calculate_chunk_boundaries(nlon, n_chunks_lon, overlap_cells)
+    # --- SHARED MEMORY SETUP ---
+    # Create a shared memory block sized for the data
+    shm = shared_memory.SharedMemory(create=True, size=data.nbytes)
     
-    # Process chunks in parallel
-    print(f"    Processing {len(lat_chunks) * len(lon_chunks)} chunks in parallel...")
+    # Create a numpy array backed by the shared memory
+    shared_arr = np.ndarray(data.shape, dtype=data.dtype, buffer=shm.buf)
     
-    # Prepare arguments for parallel processing
-    chunk_args = []
-    for i, (lat_start, lat_end, lat_core_start, lat_core_end) in enumerate(lat_chunks):
-        for j, (lon_start, lon_end, lon_core_start, lon_core_end) in enumerate(lon_chunks):
-            chunk_data = data[:, lat_start:lat_end, lon_start:lon_end]
-            chunk_args.append((
-                i, j,
-                chunk_data,
-                object_threshold,
-                max_treshold,
-                min_dist,
-                (lat_start, lat_end, lat_core_start, lat_core_end),
-                (lon_start, lon_end, lon_core_start, lon_core_end)
-            ))
-    
-    # Process chunks in parallel
-    with mp.Pool() as pool:
-        chunk_results = pool.starmap(_process_watershed_chunk, chunk_args)
-    
+    # Copy the data into shared memory
+    shared_arr[:] = data[:]
+    # ---------------------------
+
+    try:
+        # Calculate chunk boundaries with overlap
+        lat_chunks = _calculate_chunk_boundaries(nlat, n_chunks_lat, overlap_cells)
+        lon_chunks = _calculate_chunk_boundaries(nlon, n_chunks_lon, overlap_cells)
+        
+        # Process chunks in parallel
+        print(f"    Processing {len(lat_chunks) * len(lon_chunks)} chunks in parallel...")
+        
+        # Prepare arguments for parallel processing
+        chunk_args = []
+        for i, (lat_start, lat_end, lat_core_start, lat_core_end) in enumerate(lat_chunks):
+            for j, (lon_start, lon_end, lon_core_start, lon_core_end) in enumerate(lon_chunks):
+                # We pass the shared memory name and the full shape/dtype
+                chunk_args.append((
+                    i, j,
+                    shm.name,       # Pass name instead of data
+                    data.shape,     # Pass shape to reconstruct array
+                    data.dtype,     # Pass dtype
+                    object_threshold,
+                    max_treshold,
+                    min_dist,
+                    (lat_start, lat_end, lat_core_start, lat_core_end),
+                    (lon_start, lon_end, lon_core_start, lon_core_end)
+                ))
+        
+        # Process chunks in parallel
+        with mp.Pool() as pool:
+            chunk_results = pool.starmap(_process_watershed_chunk, chunk_args)
+            
+    finally:
+        # CLEANUP: Very important to unlink shared memory!
+        shm.close()
+        shm.unlink()
+
     # Merge results
     print("    Merging chunk results...")
     merged_result = _merge_watershed_chunks(
@@ -821,7 +841,9 @@ def _calculate_chunk_boundaries(total_size, n_chunks, overlap):
 def _process_watershed_chunk(
     chunk_i,
     chunk_j,
-    chunk_data,
+    shm_name,      
+    shape,         
+    dtype,         
     object_threshold,
     max_treshold,
     min_dist,
@@ -838,8 +860,12 @@ def _process_watershed_chunk(
         Chunk index in latitude direction
     chunk_j : int
         Chunk index in longitude direction
-    chunk_data : np.ndarray
-        3D data for the chunk
+    shm_name : str
+        Name of the shared memory block
+    shape : tuple
+        Shape of the full 3D data
+    dtype : data-type
+        Data type of the full
     object_threshold : float
         Threshold for binary mask
     max_treshold : float
@@ -857,85 +883,98 @@ def _process_watershed_chunk(
         Contains chunk indices, boundaries, and labeled data
     """
     
+    # Attach to the existing shared memory
+    existing_shm = shared_memory.SharedMemory(name=shm_name)
+    
+    # Create numpy array wrapper (this is zero-copy)
+    full_data = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
+    
     lat_start, lat_end, lat_core_start, lat_core_end = lat_bounds
     lon_start, lon_end, lon_core_start, lon_core_end = lon_bounds
     
-    # Create binary mask
-    image = chunk_data >= object_threshold
+    # Create the slice (View)
+    chunk_data = full_data[:, lat_start:lat_end, lon_start:lon_end]
     
-    # Find peaks
-    coords_list = []
-    for t in range(chunk_data.shape[0]):
-        coords_t = peak_local_max(
-            chunk_data[t],
-            min_distance=min_dist,
-            threshold_abs=max_treshold,
-            labels=image[t],
-            exclude_border=True
+    try:
+        
+        # Create binary mask
+        image = chunk_data >= object_threshold
+        
+        # Find peaks
+        coords_list = []
+        for t in range(chunk_data.shape[0]):
+            coords_t = peak_local_max(
+                chunk_data[t],
+                min_distance=min_dist,
+                threshold_abs=max_treshold,
+                labels=image[t],
+                exclude_border=True
+            )
+            coords_with_time = np.column_stack((
+                np.full(coords_t.shape[0], t),
+                coords_t
+            ))
+            coords_list.append(coords_with_time)
+        
+        if len(coords_list) > 0:
+            coords = np.vstack(coords_list)
+        else:
+            coords = np.empty((0, 3), dtype=int)
+            
+        # Create markers
+        mask = np.zeros(chunk_data.shape, dtype=bool)
+        if coords.size > 0:
+            mask[tuple(coords.T)] = True
+            
+        # Label peaks over time
+        labels = label_peaks_over_time_3d(coords, max_dist=min_dist)
+        markers = np.zeros(chunk_data.shape, dtype=int)
+        if coords.size > 0:
+            markers[tuple(coords.T)] = labels
+            
+        # Perform watershed
+        connection = np.ones((3, 3, 3))
+        watershed_result = watershed(
+            image=chunk_data * -1,
+            markers=markers,
+            connectivity=connection,
+            offset=np.ones(3, dtype=int),
+            mask=image,
+            compactness=0
         )
-        coords_with_time = np.column_stack((
-            np.full(coords_t.shape[0], t),
-            coords_t
-        ))
-        coords_list.append(coords_with_time)
-    
-    if len(coords_list) > 0:
-        coords = np.vstack(coords_list)
-    else:
-        coords = np.empty((0, 3), dtype=int)
-    
-    # Create markers
-    mask = np.zeros(chunk_data.shape, dtype=bool)
-    mask[tuple(coords.T)] = True
-    
-    # Label peaks over time
-    labels = label_peaks_over_time_3d(coords, max_dist=min_dist)
-    markers = np.zeros(chunk_data.shape, dtype=int)
-    markers[tuple(coords.T)] = labels
-    
-    # Perform watershed
-    connection = np.ones((3, 3, 3))
-    watershed_result = watershed(
-        image=chunk_data * -1,
-        markers=markers,
-        connectivity=connection,
-        offset=np.ones(3, dtype=int),
-        mask=image,
-        compactness=0
-    )
-    
-    # Indices relative to the chunk array
-    lat_start, lat_end, lat_core_start, lat_core_end = lat_bounds
-    lon_start, lon_end, lon_core_start, lon_core_end = lon_bounds
-    
-    rel_lat_core_start = lat_core_start - lat_start
-    rel_lat_core_end = lat_core_end - lat_start
-    rel_lon_core_start = lon_core_start - lon_start
-    rel_lon_core_end = lon_core_end - lon_start
+        
+        rel_lat_core_start = lat_core_start - lat_start
+        rel_lat_core_end = lat_core_end - lat_start
+        rel_lon_core_start = lon_core_start - lon_start
+        rel_lon_core_end = lon_core_end - lon_start
 
-    # Extract Core (for final image)
-    core_result = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_start:rel_lon_core_end]
-    
-    # Extract Halos (for merging)
-    # We grab the labels that extend BEYOND the core into the overlap region
-    halo_lat_upper = watershed_result[:, rel_lat_core_end:, rel_lon_core_start:rel_lon_core_end]
-    halo_lon_upper = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_end:]
-    
-    # Note: We only strictly need the "Upper" (Right/Bottom) halos if we process 
-    # boundaries in a fixed order (e.g. Chunk i vs Chunk i+1).
-    
-    return {
-        'chunk_i': chunk_i,
-        'chunk_j': chunk_j,
-        'lat_core_start': lat_core_start,
-        'lat_core_end': lat_core_end,
-        'lon_core_start': lon_core_start,
-        'lon_core_end': lon_core_end,
-        'labels': core_result,
-        'halo_lat_upper': halo_lat_upper, # Overlap into the chunk to the South (or North depending on index)
-        'halo_lon_upper': halo_lon_upper, # Overlap into the chunk to the East
-        'max_label': watershed_result.max()
-    }
+        # Extract Core (for final image)
+        core_result = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_start:rel_lon_core_end]
+        
+        # Extract Halos (for merging)
+        # We grab the labels that extend BEYOND the core into the overlap region
+        halo_lat_upper = watershed_result[:, rel_lat_core_end:, rel_lon_core_start:rel_lon_core_end]
+        halo_lon_upper = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_end:]
+        
+        # Note: We only strictly need the "Upper" (Right/Bottom) halos if we process 
+        # boundaries in a fixed order (e.g. Chunk i vs Chunk i+1).
+            
+        return {
+            'chunk_i': chunk_i,
+            'chunk_j': chunk_j,
+            'lat_core_start': lat_core_start,
+            'lat_core_end': lat_core_end,
+            'lon_core_start': lon_core_start,
+            'lon_core_end': lon_core_end,
+            'labels': core_result,
+            'halo_lat_upper': halo_lat_upper,
+            'halo_lon_upper': halo_lon_upper,
+            'max_label': watershed_result.max() if watershed_result.size > 0 else 0
+        }
+        
+    finally:
+        # Clean up the worker's connection to shared memory
+        existing_shm.close()
 
 
 def _merge_watershed_chunks(chunk_results, output_shape, lat_chunks, lon_chunks):
