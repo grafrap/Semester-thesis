@@ -726,6 +726,7 @@ def watershed_3d_overlap_parallel(
         print(f"Auto-configured to {n_chunks_lat} latitude chunks and {n_chunks_lon} longitude chunks for parallel processing.")
     
     # Set default overlap
+    # Set default overlap
     if overlap_cells is None:
         overlap_cells = min_dist * 4
     
@@ -740,70 +741,110 @@ def watershed_3d_overlap_parallel(
     
     nt, nlat, nlon = data.shape
     
-    # --- SHARED MEMORY SETUP ---
-    # 1. Input Data SHM
+    # --- 1. SETUP SHARED MEMORY FOR INPUT & MAIN OUTPUT ---
     shm_input = shared_memory.SharedMemory(create=True, size=data.nbytes)
     shared_input_arr = np.ndarray(data.shape, dtype=data.dtype, buffer=shm_input.buf)
     shared_input_arr[:] = data[:]
     
-    # 2. Output Labels SHM (New!)
-    # We anticipate the output is int32 or int64. Let's use int32 to save space if appropriate, or int64.
-    # Standard skimage watershed returns int32 or int64 depending on input. Let's assume int32 is sufficient.
     out_dtype = np.int32 
     out_size = int(np.prod(data.shape) * np.dtype(out_dtype).itemsize)
     shm_output = shared_memory.SharedMemory(create=True, size=out_size)
     shared_output_arr = np.ndarray(data.shape, dtype=out_dtype, buffer=shm_output.buf)
-    shared_output_arr.fill(0) # Initialize with zeros
-    # ---------------------------
+    shared_output_arr.fill(0) 
 
+    # --- 2. PRE-CALCULATE HALO BUFFER SIZE ---
+    # We need to store the "Upper" halos for Lat and Lon for every chunk.
+    # To do this efficiently, we pre-calculate the boundaries and required size.
+    lat_chunks = _calculate_chunk_boundaries(nlat, n_chunks_lat, overlap_cells)
+    lon_chunks = _calculate_chunk_boundaries(nlon, n_chunks_lon, overlap_cells)
+    
+    halo_metadata = [] # Stores size and offset info for each chunk
+    total_halo_elements = 0
+    
+    for i, (lat_s, lat_e, lat_cs, lat_ce) in enumerate(lat_chunks):
+        for j, (lon_s, lon_e, lon_cs, lon_ce) in enumerate(lon_chunks):
+            # Calculate dimensions of the halos this chunk will produce
+            # Note: Halos are the regions OUTSIDE the core but INSIDE the chunk
+            
+            # Lat Halo Upper (South side of chunk): Shape (T, overlap_lat, width_lon)
+            # It exists if there is space between core_end and chunk_end
+            h_lat_h = lat_e - lat_ce
+            h_lat_w = lon_e - lon_s # Full width of the chunk
+            size_lat = nt * h_lat_h * h_lat_w
+            
+            # Lon Halo Upper (East side of chunk): Shape (T, width_lat, overlap_lon)
+            # Note: We only take the core height here to avoid double counting corner? 
+            # Actually, standard watershed usually returns rectangular blocks. 
+            # Let's save the full strip height to be safe.
+            h_lon_h = lat_e - lat_s 
+            h_lon_w = lon_e - lon_ce
+            size_lon = nt * h_lon_h * h_lon_w
+            
+            meta = {
+                'chunk_i': i, 'chunk_j': j,
+                'lat_bounds': (lat_s, lat_e, lat_cs, lat_ce),
+                'lon_bounds': (lon_s, lon_e, lon_cs, lon_ce),
+                'lat_halo_shape': (nt, h_lat_h, h_lat_w),
+                'lon_halo_shape': (nt, h_lon_h, h_lon_w),
+                'lat_halo_offset': total_halo_elements,
+                'lon_halo_offset': total_halo_elements + size_lat
+            }
+            halo_metadata.append(meta)
+            total_halo_elements += (size_lat + size_lon)
+
+    # --- 3. SETUP SHARED MEMORY FOR HALOS ---
+    halo_bytes = total_halo_elements * np.dtype(out_dtype).itemsize
+    shm_halos = shared_memory.SharedMemory(create=True, size=halo_bytes)
+    # We don't create a single NDArray here because it's a flat buffer containing many arrays
+    
     try:
-        lat_chunks = _calculate_chunk_boundaries(nlat, n_chunks_lat, overlap_cells)
-        lon_chunks = _calculate_chunk_boundaries(nlon, n_chunks_lon, overlap_cells)
-        
-        print(f"    Processing {len(lat_chunks) * len(lon_chunks)} chunks in parallel...")
+        print(f"    Processing {len(halo_metadata)} chunks with {halo_bytes / 1e9:.2f} GB halo buffer...")
         
         chunk_args = []
-        for i, (lat_start, lat_end, lat_core_start, lat_core_end) in enumerate(lat_chunks):
-            for j, (lon_start, lon_end, lon_core_start, lon_core_end) in enumerate(lon_chunks):
-                chunk_args.append((
-                    i, j,
-                    shm_input.name,   # Input SHM name
-                    shm_output.name,  # Output SHM name (NEW)
-                    data.shape,
-                    data.dtype,
-                    out_dtype,        # Output dtype
-                    object_threshold,
-                    max_treshold,
-                    min_dist,
-                    (lat_start, lat_end, lat_core_start, lat_core_end),
-                    (lon_start, lon_end, lon_core_start, lon_core_end)
-                ))
+        for meta in halo_metadata:
+            chunk_args.append((
+                meta, # Pass the metadata dict
+                shm_input.name,
+                shm_output.name,
+                shm_halos.name, # Pass halo buffer name
+                data.shape,
+                data.dtype,
+                out_dtype,
+                object_threshold,
+                max_treshold,
+                min_dist
+            ))
         
+        # --- 4. RUN PARALLEL ---
         with mp.Pool() as pool:
-            chunk_results = pool.starmap(_process_watershed_chunk, chunk_args)
+            # Workers return TINY metadata only (max_label, etc.)
+            worker_results = pool.starmap(_process_watershed_chunk_no_return, chunk_args)
 
         print("    Merging chunk results...")
         
-        # We pass the shared output array directly to the merger
-        # The merger will modify it in-place to fix offsets
+        # Combine the worker results (metadata) with the pre-calculated halo metadata
+        # We need both to find the data in shared memory
+        full_results = []
+        for w_res, h_meta in zip(worker_results, halo_metadata):
+            combined = {**w_res, **h_meta}
+            full_results.append(combined)
+
         _merge_watershed_chunks(
-            chunk_results,
-            shared_output_arr, # Pass the shared array
+            full_results,
+            shared_output_arr, # Main grid (Core labels)
+            shm_halos,         # Halo buffer
             lat_chunks,
             lon_chunks
         )
         
-        # Copy result out of shared memory before closing
         final_result = shared_output_arr.copy()
 
     finally:
         # CLEANUP
-        shm_input.close()
-        shm_input.unlink()
-        shm_output.close()
-        shm_output.unlink()
+        shm_input.close(); shm_input.unlink()
+        shm_output.close(); shm_output.unlink()
+        shm_halos.close(); shm_halos.unlink()
     
-    # Handle dateline correction
     if connectLon == 1:
         if extension_size != 0:
             final_result = final_result[:, :, extension_size:-extension_size]
@@ -811,6 +852,264 @@ def watershed_3d_overlap_parallel(
     
     return final_result
 
+def _process_watershed_chunk_no_return(
+    meta,
+    shm_input_name,      
+    shm_output_name,
+    shm_halos_name,
+    shape,         
+    dtype_in,
+    dtype_out,       
+    object_threshold,
+    max_treshold,
+    min_dist
+):
+    # Attach to shared memories
+    shm_in = shared_memory.SharedMemory(name=shm_input_name)
+    shm_out = shared_memory.SharedMemory(name=shm_output_name)
+    shm_halos = shared_memory.SharedMemory(name=shm_halos_name)
+    
+    full_data_in = np.ndarray(shape, dtype=dtype_in, buffer=shm_in.buf)
+    full_data_out = np.ndarray(shape, dtype=dtype_out, buffer=shm_out.buf)
+    
+    # Create flat wrapper for halo buffer
+    # We will reconstruct the specific halo arrays using slicing
+    flat_halos = np.ndarray((shm_halos.size // np.dtype(dtype_out).itemsize,), 
+                           dtype=dtype_out, buffer=shm_halos.buf)
+    
+    lat_s, lat_e, lat_cs, lat_ce = meta['lat_bounds']
+    lon_s, lon_e, lon_cs, lon_ce = meta['lon_bounds']
+    
+    chunk_data = full_data_in[:, lat_s:lat_e, lon_s:lon_e]
+    
+    try:
+        # --- Perform Watershed (Same as before) ---
+        image = chunk_data >= object_threshold
+        
+        coords_list = []
+        for t in range(chunk_data.shape[0]):
+            coords_t = peak_local_max(
+                chunk_data[t],
+                min_distance=min_dist,
+                threshold_abs=max_treshold,
+                labels=image[t],
+                exclude_border=True
+            )
+            if coords_t.size > 0:
+                coords_with_time = np.column_stack((np.full(coords_t.shape[0], t), coords_t))
+                coords_list.append(coords_with_time)
+        
+        if len(coords_list) > 0:
+            coords = np.vstack(coords_list)
+        else:
+            coords = np.empty((0, 3), dtype=int)
+            
+        mask = np.zeros(chunk_data.shape, dtype=bool)
+        if coords.size > 0: mask[tuple(coords.T)] = True
+            
+        labels = label_peaks_over_time_3d(coords, max_dist=min_dist)
+        markers = np.zeros(chunk_data.shape, dtype=int)
+        if coords.size > 0: markers[tuple(coords.T)] = labels
+            
+        watershed_result = watershed(
+            image=chunk_data * -1,
+            markers=markers,
+            connectivity=np.ones((3, 3, 3)),
+            offset=np.ones(3, dtype=int),
+            mask=image,
+            compactness=0
+        )
+        # -------------------------------------------
+
+        # 1. WRITE CORE TO GLOBAL OUTPUT
+        rel_lat_cs = lat_cs - lat_s
+        rel_lat_ce = lat_ce - lat_s
+        rel_lon_cs = lon_cs - lon_s
+        rel_lon_ce = lon_ce - lon_s
+
+        core_result = watershed_result[:, rel_lat_cs:rel_lat_ce, rel_lon_cs:rel_lon_ce]
+        full_data_out[:, lat_cs:lat_ce, lon_cs:lon_ce] = core_result.astype(dtype_out)
+
+        # 2. WRITE HALOS TO SHARED HALO BUFFER
+        # Extract Halo slices from local result
+        # Lat Halo (Upper)
+        if meta['lat_halo_shape'][1] > 0:
+            h_lat = watershed_result[:, rel_lat_ce:, :] # Take everything below core
+            # Flatten and write to buffer
+            start = meta['lat_halo_offset']
+            end = start + h_lat.size
+            flat_halos[start:end] = h_lat.ravel().astype(dtype_out)
+
+        # Lon Halo (Upper)
+        if meta['lon_halo_shape'][2] > 0:
+            h_lon = watershed_result[:, :, rel_lon_ce:] # Take everything right of core
+            start = meta['lon_halo_offset']
+            end = start + h_lon.size
+            flat_halos[start:end] = h_lon.ravel().astype(dtype_out)
+
+        # Return only tiny metadata
+        return {
+            'max_label': watershed_result.max() if watershed_result.size > 0 else 0
+        }
+        
+    finally:
+        shm_in.close(); shm_out.close(); shm_halos.close()
+
+def _merge_watershed_chunks(chunk_results, merged_array, shm_halos, lat_chunks, lon_chunks):
+    # Reconstruct the flat halo array
+    dtype_out = merged_array.dtype
+    flat_halos = np.ndarray((shm_halos.size // np.dtype(dtype_out).itemsize,), 
+                           dtype=dtype_out, buffer=shm_halos.buf)
+
+    chunk_results.sort(key=lambda x: (x['chunk_i'], x['chunk_j']))
+    
+    # 1. Calculate Offsets
+    chunk_offsets = {}
+    current_offset = 0
+    for result in chunk_results:
+        idx = (result['chunk_i'], result['chunk_j'])
+        chunk_offsets[idx] = current_offset
+        current_offset += result['max_label']
+    
+    total_max_label = current_offset
+
+    # 2. Build Merge Map
+    global_map = _build_merge_map_shm(
+        merged_array, 
+        flat_halos,   # Pass flat buffer
+        chunk_results, 
+        chunk_offsets, 
+        total_max_label
+    )
+
+    # 3. Apply Map In-Place
+    _apply_map_inplace(merged_array, chunk_results, chunk_offsets, global_map)
+
+    return merged_array
+
+def _build_merge_map_shm(merged_array, flat_halos, chunk_results, chunk_offsets, total_max_label):
+    parent = list(range(total_max_label + 1))
+    
+    def find(i):
+        if parent[i] == i: return i
+        path = [i]
+        while parent[path[-1]] != path[-1]:
+            path.append(parent[path[-1]])
+        root = path[-1]
+        for node in path: parent[node] = root
+        return root
+
+    def union(i, j):
+        root_i = find(i); root_j = find(j)
+        if root_i != root_j: 
+            if root_i < root_j: parent[root_j] = root_i
+            else: parent[root_i] = root_j
+
+    grid_map = {(r['chunk_i'], r['chunk_j']): r for r in chunk_results}
+
+    def check_overlap(halo_flat_slice, halo_shape, core_slice_raw, offset_halo, offset_core):
+        # Reshape the flat halo slice back to 3D
+        halo_data = halo_flat_slice.reshape(halo_shape)
+        
+        # --- FIX FOR VALUE ERROR (Broadcasting mismatch) ---
+        # The halo extracted might be slightly larger than the neighbor's core 
+        # (e.g. at domain edges or if chunks are uneven).
+        # We must slice both arrays to the intersection of their shapes.
+        
+        # 1. Determine the common shape
+        d0 = min(halo_data.shape[0], core_slice_raw.shape[0])
+        d1 = min(halo_data.shape[1], core_slice_raw.shape[1])
+        d2 = min(halo_data.shape[2], core_slice_raw.shape[2])
+        
+        # 2. Slice both arrays to this common shape
+        # We assume alignment starts at 0,0,0 relative to the overlap interface
+        h_cut = halo_data[:d0, :d1, :d2]
+        c_cut = core_slice_raw[:d0, :d1, :d2]
+
+        mask = (h_cut > 0) & (c_cut > 0)
+        if not np.any(mask): return
+
+        halo_ids_global = h_cut[mask] + offset_halo
+        core_ids_global = c_cut[mask] + offset_core
+
+        pairs = np.column_stack((halo_ids_global, core_ids_global))
+        unique_pairs = np.unique(pairs, axis=0)
+        
+        for h_id, c_id in unique_pairs:
+            union(int(h_id), int(c_id))
+
+    # --- Process Boundaries ---
+    for res in chunk_results:
+        i, j = res['chunk_i'], res['chunk_j']
+        
+        # Check North Neighbor (i+1)
+        if (i + 1, j) in grid_map:
+            # Reconstruct Halo from buffer
+            shape = res['lat_halo_shape']
+            if shape[1] > 0: # If height > 0
+                start = res['lat_halo_offset']
+                end = start + np.prod(shape)
+                halo_view = flat_halos[start:end]
+                
+                # Neighbor Core
+                # FIX: We must be careful not to slice beyond the array bounds
+                # The neighbor is grid_map[(i+1, j)]
+                # The halo from 'res' corresponds to the BOTTOM of 'res'
+                # It should match the TOP of 'neighbor'
+                
+                neighbor_res = grid_map[(i+1, j)]
+                
+                # We expect the halo to overlap with the neighbor's lat_core region
+                # specifically the *start* of the neighbor's core.
+                neighbor_lat_start = neighbor_res['lat_bounds'][2] # lat_core_start
+                neighbor_lat_end = neighbor_res['lat_bounds'][3]   # lat_core_end
+                
+                # The theoretical overlap height is shape[1]
+                # But we can't go beyond the neighbor's core size
+                max_h = min(shape[1], neighbor_lat_end - neighbor_lat_start)
+                
+                core_slice = merged_array[
+                    :, 
+                    neighbor_lat_start : neighbor_lat_start + max_h, 
+                    res['lon_bounds'][2] : res['lon_bounds'][3] # Match my core width
+                ]
+                
+                check_overlap(halo_view, shape, core_slice, chunk_offsets[(i, j)], chunk_offsets[(i+1, j)])
+
+        # Check East Neighbor (j+1)
+        if (i, j + 1) in grid_map:
+            shape = res['lon_halo_shape']
+            if shape[2] > 0:
+                start = res['lon_halo_offset']
+                end = start + np.prod(shape)
+                halo_view = flat_halos[start:end]
+                
+                neighbor_res = grid_map[(i, j+1)]
+                neighbor_lon_start = neighbor_res['lon_bounds'][2] # lon_core_start
+                neighbor_lon_end = neighbor_res['lon_bounds'][3]   # lon_core_end
+                
+                max_w = min(shape[2], neighbor_lon_end - neighbor_lon_start)
+                
+                core_slice = merged_array[
+                    :, 
+                    res['lat_bounds'][2] : res['lat_bounds'][3], # Match my core height
+                    neighbor_lon_start : neighbor_lon_start + max_w
+                ]
+                
+                check_overlap(halo_view, shape, core_slice, chunk_offsets[(i, j)], chunk_offsets[(i, j+1)])
+
+    # --- Build Final Consecutive Map (Same as before) ---
+    final_mapping = np.zeros(total_max_label + 1, dtype=np.int32)
+    for k in range(len(parent)): final_mapping[k] = find(k)
+    final_mapping[0] = 0
+
+    unique_roots = np.unique(final_mapping)
+    if unique_roots[0] == 0: unique_roots = unique_roots[1:]
+        
+    compress_lut = np.zeros(final_mapping.max() + 1, dtype=np.int32)
+    compress_lut[unique_roots] = np.arange(1, len(unique_roots) + 1)
+    
+    return compress_lut[final_mapping]
 
 def _calculate_chunk_boundaries(total_size, n_chunks, overlap):
     """
@@ -847,152 +1146,152 @@ def _calculate_chunk_boundaries(total_size, n_chunks, overlap):
     return boundaries
 
 
-def _process_watershed_chunk(
-    chunk_i,
-    chunk_j,
-    shm_input_name,
-    shm_output_name,      
-    shape,         
-    dtype_in,
-    dtype_out,         
-    object_threshold,
-    max_treshold,
-    min_dist,
-    lat_bounds,
-    lon_bounds
-):
-    """
-    Process a single chunk using watershed algorithm. Similar to watershed_3d_overlap but
-    for a specific chunk of the lat x lon domain.
+# def _process_watershed_chunk(
+#     chunk_i,
+#     chunk_j,
+#     shm_input_name,
+#     shm_output_name,      
+#     shape,         
+#     dtype_in,
+#     dtype_out,         
+#     object_threshold,
+#     max_treshold,
+#     min_dist,
+#     lat_bounds,
+#     lon_bounds
+# ):
+#     """
+#     Process a single chunk using watershed algorithm. Similar to watershed_3d_overlap but
+#     for a specific chunk of the lat x lon domain.
 
-    Parameters
-    ----------
-    chunk_i : int
-        Chunk index in latitude direction
-    chunk_j : int
-        Chunk index in longitude direction
-    shm_name : str
-        Name of the shared memory block
-    shape : tuple
-        Shape of the full 3D data
-    dtype : data-type
-        Data type of the full
-    object_threshold : float
-        Threshold for binary mask
-    max_treshold : float
-        Threshold for peak detection
-    min_dist : int
-        Minimum distance between peaks
-    lat_bounds : tuple
-        (lat_start, lat_end, lat_core_start, lat_core_end)
-    lon_bounds : tuple
-        (lon_start, lon_end, lon_core_start, lon_core_end)
+#     Parameters
+#     ----------
+#     chunk_i : int
+#         Chunk index in latitude direction
+#     chunk_j : int
+#         Chunk index in longitude direction
+#     shm_name : str
+#         Name of the shared memory block
+#     shape : tuple
+#         Shape of the full 3D data
+#     dtype : data-type
+#         Data type of the full
+#     object_threshold : float
+#         Threshold for binary mask
+#     max_treshold : float
+#         Threshold for peak detection
+#     min_dist : int
+#         Minimum distance between peaks
+#     lat_bounds : tuple
+#         (lat_start, lat_end, lat_core_start, lat_core_end)
+#     lon_bounds : tuple
+#         (lon_start, lon_end, lon_core_start, lon_core_end)
     
-    Returns
-    -------
-    dict
-        Contains chunk indices, boundaries, and labeled data
-    """
+#     Returns
+#     -------
+#     dict
+#         Contains chunk indices, boundaries, and labeled data
+#     """
     
-    # Attach to the existing shared memory
-    existing_shm_in = shared_memory.SharedMemory(name=shm_input_name)
-    existing_shm_out = shared_memory.SharedMemory(name=shm_output_name)
+#     # Attach to the existing shared memory
+#     existing_shm_in = shared_memory.SharedMemory(name=shm_input_name)
+#     existing_shm_out = shared_memory.SharedMemory(name=shm_output_name)
     
-    # Create numpy array wrapper (this is zero-copy)
-    full_data_in = np.ndarray(shape, dtype=dtype_in, buffer=existing_shm_in.buf)
-    full_data_out = np.ndarray(shape, dtype=dtype_out, buffer=existing_shm_out.buf)
+#     # Create numpy array wrapper (this is zero-copy)
+#     full_data_in = np.ndarray(shape, dtype=dtype_in, buffer=existing_shm_in.buf)
+#     full_data_out = np.ndarray(shape, dtype=dtype_out, buffer=existing_shm_out.buf)
 
-    lat_start, lat_end, lat_core_start, lat_core_end = lat_bounds
-    lon_start, lon_end, lon_core_start, lon_core_end = lon_bounds
+#     lat_start, lat_end, lat_core_start, lat_core_end = lat_bounds
+#     lon_start, lon_end, lon_core_start, lon_core_end = lon_bounds
     
-    # Create the slice (View)
-    chunk_data = full_data_in[:, lat_start:lat_end, lon_start:lon_end]
+#     # Create the slice (View)
+#     chunk_data = full_data_in[:, lat_start:lat_end, lon_start:lon_end]
     
-    try:
+#     try:
         
-        # Create binary mask
-        image = chunk_data >= object_threshold
+#         # Create binary mask
+#         image = chunk_data >= object_threshold
         
-        # Find peaks
-        coords_list = []
-        for t in range(chunk_data.shape[0]):
-            coords_t = peak_local_max(
-                chunk_data[t],
-                min_distance=min_dist,
-                threshold_abs=max_treshold,
-                labels=image[t],
-                exclude_border=True
-            )
-            coords_with_time = np.column_stack((
-                np.full(coords_t.shape[0], t),
-                coords_t
-            ))
-            coords_list.append(coords_with_time)
+#         # Find peaks
+#         coords_list = []
+#         for t in range(chunk_data.shape[0]):
+#             coords_t = peak_local_max(
+#                 chunk_data[t],
+#                 min_distance=min_dist,
+#                 threshold_abs=max_treshold,
+#                 labels=image[t],
+#                 exclude_border=True
+#             )
+#             coords_with_time = np.column_stack((
+#                 np.full(coords_t.shape[0], t),
+#                 coords_t
+#             ))
+#             coords_list.append(coords_with_time)
         
-        if len(coords_list) > 0:
-            coords = np.vstack(coords_list)
-        else:
-            coords = np.empty((0, 3), dtype=int)
+#         if len(coords_list) > 0:
+#             coords = np.vstack(coords_list)
+#         else:
+#             coords = np.empty((0, 3), dtype=int)
             
-        # Create markers
-        mask = np.zeros(chunk_data.shape, dtype=bool)
-        if coords.size > 0:
-            mask[tuple(coords.T)] = True
+#         # Create markers
+#         mask = np.zeros(chunk_data.shape, dtype=bool)
+#         if coords.size > 0:
+#             mask[tuple(coords.T)] = True
             
-        # Label peaks over time
-        labels = label_peaks_over_time_3d(coords, max_dist=min_dist)
-        markers = np.zeros(chunk_data.shape, dtype=int)
-        if coords.size > 0:
-            markers[tuple(coords.T)] = labels
+#         # Label peaks over time
+#         labels = label_peaks_over_time_3d(coords, max_dist=min_dist)
+#         markers = np.zeros(chunk_data.shape, dtype=int)
+#         if coords.size > 0:
+#             markers[tuple(coords.T)] = labels
             
-        # Perform watershed
-        connection = np.ones((3, 3, 3))
-        watershed_result = watershed(
-            image=chunk_data * -1,
-            markers=markers,
-            connectivity=connection,
-            offset=np.ones(3, dtype=int),
-            mask=image,
-            compactness=0
-        )
+#         # Perform watershed
+#         connection = np.ones((3, 3, 3))
+#         watershed_result = watershed(
+#             image=chunk_data * -1,
+#             markers=markers,
+#             connectivity=connection,
+#             offset=np.ones(3, dtype=int),
+#             mask=image,
+#             compactness=0
+#         )
         
-        # Calculate relative coordinates for the CORE
-        rel_lat_core_start = lat_core_start - lat_start
-        rel_lat_core_end = lat_core_end - lat_start
-        rel_lon_core_start = lon_core_start - lon_start
-        rel_lon_core_end = lon_core_end - lon_start
+#         # Calculate relative coordinates for the CORE
+#         rel_lat_core_start = lat_core_start - lat_start
+#         rel_lat_core_end = lat_core_end - lat_start
+#         rel_lon_core_start = lon_core_start - lon_start
+#         rel_lon_core_end = lon_core_end - lon_start
 
-        # Extract Core (for final image)
-        core_result = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_start:rel_lon_core_end]
+#         # Extract Core (for final image)
+#         core_result = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_start:rel_lon_core_end]
         
-        # WRITE DIRECTLY TO SHARED OUTPUT
-        # We only write the core part to the global array
-        full_data_out[:, lat_core_start:lat_core_end, lon_core_start:lon_core_end] = core_result.astype(dtype_out)
+#         # WRITE DIRECTLY TO SHARED OUTPUT
+#         # We only write the core part to the global array
+#         full_data_out[:, lat_core_start:lat_core_end, lon_core_start:lon_core_end] = core_result.astype(dtype_out)
 
-        # Extract Halos (We still need to return these for merging, but they are smaller)
-        halo_lat_upper = watershed_result[:, rel_lat_core_end:, rel_lon_core_start:rel_lon_core_end]
-        halo_lon_upper = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_end:]
+#         # Extract Halos (We still need to return these for merging, but they are smaller)
+#         halo_lat_upper = watershed_result[:, rel_lat_core_end:, rel_lon_core_start:rel_lon_core_end]
+#         halo_lon_upper = watershed_result[:, rel_lat_core_start:rel_lat_core_end, rel_lon_core_end:]
         
-        # Note: We only strictly need the "Upper" (Right/Bottom) halos if we process 
-        # boundaries in a fixed order (e.g. Chunk i vs Chunk i+1).
+#         # Note: We only strictly need the "Upper" (Right/Bottom) halos if we process 
+#         # boundaries in a fixed order (e.g. Chunk i vs Chunk i+1).
             
-        return {
-            'chunk_i': chunk_i,
-            'chunk_j': chunk_j,
-            'lat_core_start': lat_core_start,
-            'lat_core_end': lat_core_end,
-            'lon_core_start': lon_core_start,
-            'lon_core_end': lon_core_end,
-            # 'labels': core_result,  <-- REMOVED! Huge memory saving.
-            'halo_lat_upper': halo_lat_upper,
-            'halo_lon_upper': halo_lon_upper,
-            'max_label': watershed_result.max() if watershed_result.size > 0 else 0
-        }
+#         return {
+#             'chunk_i': chunk_i,
+#             'chunk_j': chunk_j,
+#             'lat_core_start': lat_core_start,
+#             'lat_core_end': lat_core_end,
+#             'lon_core_start': lon_core_start,
+#             'lon_core_end': lon_core_end,
+#             # 'labels': core_result,  <-- REMOVED! Huge memory saving.
+#             'halo_lat_upper': halo_lat_upper,
+#             'halo_lon_upper': halo_lon_upper,
+#             'max_label': watershed_result.max() if watershed_result.size > 0 else 0
+#         }
         
-    finally:
-        # Clean up the worker's connection to shared memory
-        existing_shm_in.close()
-        existing_shm_out.close()
+#     finally:
+#         # Clean up the worker's connection to shared memory
+#         existing_shm_in.close()
+#         existing_shm_out.close()
 
 
 # def _merge_watershed_chunks(chunk_results, merged_array, lat_chunks, lon_chunks):
@@ -1069,140 +1368,140 @@ def _process_watershed_chunk(
     
 #     return merged_final
 
-def _merge_watershed_chunks(chunk_results, merged_array, lat_chunks, lon_chunks):
-    """
-    Optimized merge function that operates purely in-place on shared memory.
-    Correctly preserves background (0) while merging objects.
-    """
-    # 1. Calculate Offsets
-    chunk_results.sort(key=lambda x: (x['chunk_i'], x['chunk_j']))
+# def _merge_watershed_chunks(chunk_results, merged_array, lat_chunks, lon_chunks):
+#     """
+#     Optimized merge function that operates purely in-place on shared memory.
+#     Correctly preserves background (0) while merging objects.
+#     """
+#     # 1. Calculate Offsets
+#     chunk_results.sort(key=lambda x: (x['chunk_i'], x['chunk_j']))
     
-    chunk_offsets = {}
-    current_offset = 0
+#     chunk_offsets = {}
+#     current_offset = 0
     
-    for result in chunk_results:
-        idx = (result['chunk_i'], result['chunk_j'])
-        chunk_offsets[idx] = current_offset
-        current_offset += result['max_label']
+#     for result in chunk_results:
+#         idx = (result['chunk_i'], result['chunk_j'])
+#         chunk_offsets[idx] = current_offset
+#         current_offset += result['max_label']
     
-    total_max_label = current_offset
+#     total_max_label = current_offset
 
-    # 2. Build Merge Map (Union-Find) using Halos
-    global_map = _build_merge_map(
-        merged_array, 
-        chunk_results, 
-        chunk_offsets, 
-        total_max_label
-    )
+#     # 2. Build Merge Map (Union-Find) using Halos
+#     global_map = _build_merge_map(
+#         merged_array, 
+#         chunk_results, 
+#         chunk_offsets, 
+#         total_max_label
+#     )
 
-    # 3. Apply Map In-Place (Single Pass)
-    _apply_map_inplace(merged_array, chunk_results, chunk_offsets, global_map)
+#     # 3. Apply Map In-Place (Single Pass)
+#     _apply_map_inplace(merged_array, chunk_results, chunk_offsets, global_map)
 
-    return merged_array
+#     return merged_array
 
 
-def _build_merge_map(merged_array, chunk_results, chunk_offsets, total_max_label):
-    """
-    Analyzes halo overlaps to build a mapping from [Virtual Global ID] -> [Final ID].
-    """
-    # Parent array size: total objects + 1 (for 0/background)
-    parent = list(range(total_max_label + 1))
+# def _build_merge_map(merged_array, chunk_results, chunk_offsets, total_max_label):
+#     """
+#     Analyzes halo overlaps to build a mapping from [Virtual Global ID] -> [Final ID].
+#     """
+#     # Parent array size: total objects + 1 (for 0/background)
+#     parent = list(range(total_max_label + 1))
     
-    def find(i):
-        if parent[i] == i: return i
-        path = [i]
-        while parent[path[-1]] != path[-1]:
-            path.append(parent[path[-1]])
-        root = path[-1]
-        for node in path: parent[node] = root
-        return root
+#     def find(i):
+#         if parent[i] == i: return i
+#         path = [i]
+#         while parent[path[-1]] != path[-1]:
+#             path.append(parent[path[-1]])
+#         root = path[-1]
+#         for node in path: parent[node] = root
+#         return root
 
-    def union(i, j):
-        root_i = find(i); root_j = find(j)
-        if root_i != root_j: 
-            # Optimization: Always attach higher ID to lower ID to keep trees flat-ish
-            # or just arbitrary. Standard is by rank, but this is simple.
-            if root_i < root_j: parent[root_j] = root_i
-            else: parent[root_i] = root_j
+#     def union(i, j):
+#         root_i = find(i); root_j = find(j)
+#         if root_i != root_j: 
+#             # Optimization: Always attach higher ID to lower ID to keep trees flat-ish
+#             # or just arbitrary. Standard is by rank, but this is simple.
+#             if root_i < root_j: parent[root_j] = root_i
+#             else: parent[root_i] = root_j
 
-    grid_map = {(r['chunk_i'], r['chunk_j']): r for r in chunk_results}
+#     grid_map = {(r['chunk_i'], r['chunk_j']): r for r in chunk_results}
 
-    def check_overlap(halo_data, core_slice_raw, offset_halo, offset_core):
-        # We only care where both are non-zero
-        mask = (halo_data > 0) & (core_slice_raw > 0)
-        if not np.any(mask): return
+#     def check_overlap(halo_data, core_slice_raw, offset_halo, offset_core):
+#         # We only care where both are non-zero
+#         mask = (halo_data > 0) & (core_slice_raw > 0)
+#         if not np.any(mask): return
 
-        # VIRTUAL OFFSETTING:
-        # Local ID 1 in Chunk with offset 100 becomes Global ID 101.
-        # Background (0) is ignored by the mask above.
-        halo_ids_global = halo_data[mask] + offset_halo
-        core_ids_global = core_slice_raw[mask] + offset_core
+#         # VIRTUAL OFFSETTING:
+#         # Local ID 1 in Chunk with offset 100 becomes Global ID 101.
+#         # Background (0) is ignored by the mask above.
+#         halo_ids_global = halo_data[mask] + offset_halo
+#         core_ids_global = core_slice_raw[mask] + offset_core
 
-        pairs = np.column_stack((halo_ids_global, core_ids_global))
-        unique_pairs = np.unique(pairs, axis=0)
+#         pairs = np.column_stack((halo_ids_global, core_ids_global))
+#         unique_pairs = np.unique(pairs, axis=0)
         
-        for h_id, c_id in unique_pairs:
-            union(int(h_id), int(c_id))
+#         for h_id, c_id in unique_pairs:
+#             union(int(h_id), int(c_id))
 
-    # --- Process Boundaries ---
-    for res in chunk_results:
-        i, j = res['chunk_i'], res['chunk_j']
+#     # --- Process Boundaries ---
+#     for res in chunk_results:
+#         i, j = res['chunk_i'], res['chunk_j']
         
-        # Check North Neighbor (i+1)
-        if (i + 1, j) in grid_map:
-            halo_data = res['halo_lat_upper'] 
-            if halo_data.size > 0:
-                core_slice = merged_array[
-                    :, 
-                    res['lat_core_end'] : res['lat_core_end'] + halo_data.shape[1], 
-                    res['lon_core_start'] : res['lon_core_end']
-                ]
-                check_overlap(
-                    halo_data, core_slice, 
-                    chunk_offsets[(i, j)], 
-                    chunk_offsets[(i+1, j)]
-                )
+#         # Check North Neighbor (i+1)
+#         if (i + 1, j) in grid_map:
+#             halo_data = res['halo_lat_upper'] 
+#             if halo_data.size > 0:
+#                 core_slice = merged_array[
+#                     :, 
+#                     res['lat_core_end'] : res['lat_core_end'] + halo_data.shape[1], 
+#                     res['lon_core_start'] : res['lon_core_end']
+#                 ]
+#                 check_overlap(
+#                     halo_data, core_slice, 
+#                     chunk_offsets[(i, j)], 
+#                     chunk_offsets[(i+1, j)]
+#                 )
 
-        # Check East Neighbor (j+1)
-        if (i, j + 1) in grid_map:
-            halo_data = res['halo_lon_upper']
-            if halo_data.size > 0:
-                core_slice = merged_array[
-                    :, 
-                    res['lat_core_start'] : res['lat_core_end'], 
-                    res['lon_core_end'] : res['lon_core_end'] + halo_data.shape[2]
-                ]
-                check_overlap(
-                    halo_data, core_slice, 
-                    chunk_offsets[(i, j)], 
-                    chunk_offsets[(i, j+1)]
-                )
+#         # Check East Neighbor (j+1)
+#         if (i, j + 1) in grid_map:
+#             halo_data = res['halo_lon_upper']
+#             if halo_data.size > 0:
+#                 core_slice = merged_array[
+#                     :, 
+#                     res['lat_core_start'] : res['lat_core_end'], 
+#                     res['lon_core_end'] : res['lon_core_end'] + halo_data.shape[2]
+#                 ]
+#                 check_overlap(
+#                     halo_data, core_slice, 
+#                     chunk_offsets[(i, j)], 
+#                     chunk_offsets[(i, j+1)]
+#                 )
 
-    # --- Build Final Consecutive Map ---
-    final_mapping = np.zeros(total_max_label + 1, dtype=np.int32)
+#     # --- Build Final Consecutive Map ---
+#     final_mapping = np.zeros(total_max_label + 1, dtype=np.int32)
     
-    # 1. Flatten Union-Find
-    for k in range(len(parent)):
-        final_mapping[k] = find(k)
+#     # 1. Flatten Union-Find
+#     for k in range(len(parent)):
+#         final_mapping[k] = find(k)
     
-    # Ensure background stays 0
-    final_mapping[0] = 0
+#     # Ensure background stays 0
+#     final_mapping[0] = 0
 
-    # 2. Compress to consecutive integers
-    # Get all unique roots used in the mapping (excluding 0)
-    unique_roots = np.unique(final_mapping)
-    if unique_roots[0] == 0:
-        unique_roots = unique_roots[1:]
+#     # 2. Compress to consecutive integers
+#     # Get all unique roots used in the mapping (excluding 0)
+#     unique_roots = np.unique(final_mapping)
+#     if unique_roots[0] == 0:
+#         unique_roots = unique_roots[1:]
         
-    # Create compression lookup: Root_ID -> Consecutive_ID
-    # We need size = max_root + 1
-    compress_lut = np.zeros(final_mapping.max() + 1, dtype=np.int32)
-    compress_lut[unique_roots] = np.arange(1, len(unique_roots) + 1)
+#     # Create compression lookup: Root_ID -> Consecutive_ID
+#     # We need size = max_root + 1
+#     compress_lut = np.zeros(final_mapping.max() + 1, dtype=np.int32)
+#     compress_lut[unique_roots] = np.arange(1, len(unique_roots) + 1)
     
-    # Apply compression: Final_ID = compress_lut[Root_ID]
-    final_mapping = compress_lut[final_mapping]
+#     # Apply compression: Final_ID = compress_lut[Root_ID]
+#     final_mapping = compress_lut[final_mapping]
     
-    return final_mapping
+#     return final_mapping
 
 
 def _apply_map_inplace(merged_array, chunk_results, chunk_offsets, global_map):
@@ -1227,18 +1526,25 @@ def _apply_map_inplace(merged_array, chunk_results, chunk_offsets, global_map):
         local_lut[0] = 0
         
         # FIX: Only map objects (indices 1..max)
-        # Global ID for Local ID 'k' is 'offset + k'
-        # So we grab the slice from global_map corresponding to [offset+1 ... offset+max]
         if max_local_label > 0:
             start_idx = offset + 1
             end_idx = offset + max_local_label + 1
             local_lut[1:] = global_map[start_idx : end_idx]
         
+        # --- FIX FOR KEY ERROR ---
+        # Unpack the bounds from the metadata tuples
+        # lat_bounds = (start, end, core_start, core_end)
+        lat_core_start = res['lat_bounds'][2]
+        lat_core_end = res['lat_bounds'][3]
+        
+        lon_core_start = res['lon_bounds'][2]
+        lon_core_end = res['lon_bounds'][3]
+        
         # Apply in-place
         sl = (
             slice(None), 
-            slice(res['lat_core_start'], res['lat_core_end']), 
-            slice(res['lon_core_start'], res['lon_core_end'])
+            slice(lat_core_start, lat_core_end), 
+            slice(lon_core_start, lon_core_end)
         )
         
         chunk_data = merged_array[sl]
@@ -1246,155 +1552,154 @@ def _apply_map_inplace(merged_array, chunk_results, chunk_offsets, global_map):
         # Advanced indexing: reads chunk_data, looks up values in local_lut, writes back
         chunk_data[:] = local_lut[chunk_data]
 
-def _merge_using_halos(merged_array, chunk_results, chunk_offsets, lat_chunks, lon_chunks, overlap_match_threshold=0.5):
-    """
-    Merges objects based on 3D overlap in the halo regions.
-    overlap_match_threshold: Fraction of the halo object that must overlap 
-                             with the core object to trigger a merge.
+# def _merge_using_halos(merged_array, chunk_results, chunk_offsets, lat_chunks, lon_chunks, overlap_match_threshold=0.5):
+#     """
+#     Merges objects based on 3D overlap in the halo regions.
+#     overlap_match_threshold: Fraction of the halo object that must overlap 
+#                              with the core object to trigger a merge.
     
-    Parameters
-    ----------
-    merged_array : np.ndarray
-        The merged array with core regions placed.
-    chunk_results : list
-        List of chunk result dictionaries.
-    chunk_offsets : dict
-        Mapping of (chunk_i, chunk_j) to label offset.
-    lat_chunks, lon_chunks : list
-        Boundaries used for chunking.
-    overlap_match_threshold : float
-        Minimum fraction of halo object overlapping core object to consider a match.
+#     Parameters
+#     ----------
+#     merged_array : np.ndarray
+#         The merged array with core regions placed.
+#     chunk_results : list
+#         List of chunk result dictionaries.
+#     chunk_offsets : dict
+#         Mapping of (chunk_i, chunk_j) to label offset.
+#     lat_chunks, lon_chunks : list
+#         Boundaries used for chunking.
+#     overlap_match_threshold : float
+#         Minimum fraction of halo object overlapping core object to consider a match.
 
-    Returns
-    -------
-    np.ndarray
-        The merged array with updated labels after merging.
-    """
-    parent = {}
-    def find(i):
-        if i not in parent: parent[i] = i
-        if parent[i] != i: parent[i] = find(parent[i])
-        return parent[i]
-    def union(i, j):
-        root_i = find(i); root_j = find(j)
-        if root_i != root_j: parent[root_i] = root_j
+#     Returns
+#     -------
+#     np.ndarray
+#         The merged array with updated labels after merging.
+#     """
+#     parent = {}
+#     def find(i):
+#         if i not in parent: parent[i] = i
+#         if parent[i] != i: parent[i] = find(parent[i])
+#         return parent[i]
+#     def union(i, j):
+#         root_i = find(i); root_j = find(j)
+#         if root_i != root_j: parent[root_i] = root_j
 
-    # Organize chunks by grid coordinate for easy lookup
-    grid_map = {(r['chunk_i'], r['chunk_j']): r for r in chunk_results}
+#     # Organize chunks by grid coordinate for easy lookup
+#     grid_map = {(r['chunk_i'], r['chunk_j']): r for r in chunk_results}
     
-    # Helper to check overlap between a Halo slice and a Core slice
-    def check_overlap(halo_slice_data, core_slice_global, offset_halo):
-        # halo_slice_data: Raw labels from the chunk's halo
-        # core_slice_global: Global labels from the merged array (already offset)
-        # offset_halo: Integer to adjust halo labels to global IDs
+#     # Helper to check overlap between a Halo slice and a Core slice
+#     def check_overlap(halo_slice_data, core_slice_global, offset_halo):
+#         # halo_slice_data: Raw labels from the chunk's halo
+#         # core_slice_global: Global labels from the merged array (already offset)
+#         # offset_halo: Integer to adjust halo labels to global IDs
         
-        mask = (halo_slice_data > 0) & (core_slice_global > 0)
-        if not np.any(mask): return
+#         mask = (halo_slice_data > 0) & (core_slice_global > 0)
+#         if not np.any(mask): return
 
-        # Adjust halo labels to match the global ID space
-        halo_ids = halo_slice_data[mask] + offset_halo
-        core_ids = core_slice_global[mask]
+#         # Adjust halo labels to match the global ID space
+#         halo_ids = halo_slice_data[mask] + offset_halo
+#         core_ids = core_slice_global[mask]
 
-        # Count overlaps: (Halo_ID, Core_ID) -> Count
-        pairs = np.stack((halo_ids, core_ids), axis=1)
-        unique_pairs, counts = np.unique(pairs, axis=0, return_counts=True)
+#         # Count overlaps: (Halo_ID, Core_ID) -> Count
+#         pairs = np.stack((halo_ids, core_ids), axis=1)
+#         unique_pairs, counts = np.unique(pairs, axis=0, return_counts=True)
         
-        # Also need total size of the Halo Object in this slice to calculate ratio
-        halo_counts = np.bincount(halo_ids, minlength=halo_ids.max()+1)
+#         # Also need total size of the Halo Object in this slice to calculate ratio
+#         halo_counts = np.bincount(halo_ids, minlength=halo_ids.max()+1)
 
-        for (h_id, c_id), count in zip(unique_pairs, counts):
-            # Criterion:
-            # Does the halo object map significantly to the core object?
-            # Ratio = (Intersection Area) / (Halo Object Area in Overlap)
+#         for (h_id, c_id), count in zip(unique_pairs, counts):
+#             # Criterion:
+#             # Does the halo object map significantly to the core object?
+#             # Ratio = (Intersection Area) / (Halo Object Area in Overlap)
             
-            total_halo_pixels = halo_counts[h_id]
-            ratio = count / total_halo_pixels
+#             total_halo_pixels = halo_counts[h_id]
+#             ratio = count / total_halo_pixels
             
-            if ratio > overlap_match_threshold:
-                union(int(h_id), int(c_id))
-            # else:
-            #     print("no merge at ratio", ratio, "for halo", h_id, "and core", c_id)
+#             if ratio > overlap_match_threshold:
+#                 union(int(h_id), int(c_id))
+#             # else:
+#             #     print("no merge at ratio", ratio, "for halo", h_id, "and core", c_id)
 
-    # --- Process Latitude Boundaries ---
-    # Merge Chunk(i, j) with Chunk(i+1, j)
-    for res in chunk_results:
-        i, j = res['chunk_i'], res['chunk_j']
+#     # --- Process Latitude Boundaries ---
+#     # Merge Chunk(i, j) with Chunk(i+1, j)
+#     for res in chunk_results:
+#         i, j = res['chunk_i'], res['chunk_j']
         
-        # Check North Neighbor (i+1)
-        if (i + 1, j) in grid_map:
-            # My Halo (Lat Upper) vs Neighbor's Core (Lat Lower)
-            halo_data = res['halo_lat_upper'] # Shape: (T, Overlap, Lon_Width)
-            if halo_data.size == 0: continue
+#         # Check North Neighbor (i+1)
+#         if (i + 1, j) in grid_map:
+#             # My Halo (Lat Upper) vs Neighbor's Core (Lat Lower)
+#             halo_data = res['halo_lat_upper'] # Shape: (T, Overlap, Lon_Width)
+#             if halo_data.size == 0: continue
             
-            # Find where this halo sits in the global array
-            # It starts exactly where the core ends
-            global_lat_start = res['lat_core_end']
-            # It extends by the size of the halo array
-            global_lat_end = global_lat_start + halo_data.shape[1]
+#             # Find where this halo sits in the global array
+#             # It starts exactly where the core ends
+#             global_lat_start = res['lat_core_end']
+#             # It extends by the size of the halo array
+#             global_lat_end = global_lat_start + halo_data.shape[1]
             
-            # Extract the corresponding Core region from the MERGED array
-            # This region is owned by the neighbor (i+1)
-            core_slice = merged_array[:, global_lat_start:global_lat_end, 
-                                      res['lon_core_start']:res['lon_core_end']]
+#             # Extract the corresponding Core region from the MERGED array
+#             # This region is owned by the neighbor (i+1)
+#             core_slice = merged_array[:, global_lat_start:global_lat_end, 
+#                                       res['lon_core_start']:res['lon_core_end']]
             
-            # Compare
-            check_overlap(halo_data, core_slice, chunk_offsets[(i, j)])
+#             # Compare
+#             check_overlap(halo_data, core_slice, chunk_offsets[(i, j)])
 
-        # Check East Neighbor (j+1)
-        if (i, j + 1) in grid_map:
-            # My Halo (Lon Upper) vs Neighbor's Core (Lon Lower)
-            halo_data = res['halo_lon_upper']
-            if halo_data.size == 0: continue
+#         # Check East Neighbor (j+1)
+#         if (i, j + 1) in grid_map:
+#             # My Halo (Lon Upper) vs Neighbor's Core (Lon Lower)
+#             halo_data = res['halo_lon_upper']
+#             if halo_data.size == 0: continue
             
-            global_lon_start = res['lon_core_end']
-            global_lon_end = global_lon_start + halo_data.shape[2]
+#             global_lon_start = res['lon_core_end']
+#             global_lon_end = global_lon_start + halo_data.shape[2]
             
-            core_slice = merged_array[:, res['lat_core_start']:res['lat_core_end'],
-                                      global_lon_start:global_lon_end]
+#             core_slice = merged_array[:, res['lat_core_start']:res['lat_core_end'],
+#                                       global_lon_start:global_lon_end]
             
-            check_overlap(halo_data, core_slice, chunk_offsets[(i, j)])
+#             check_overlap(halo_data, core_slice, chunk_offsets[(i, j)])
 
-    # Apply Merges
-    unique_labels = np.unique(merged_array[merged_array > 0])
-    mapping = np.arange(unique_labels.max() + 1, dtype=merged_array.dtype)
-    for label in unique_labels:
-        if label in parent:
-            mapping[label] = find(label)
+#     # Apply Merges
+#     unique_labels = np.unique(merged_array[merged_array > 0])
+#     mapping = np.arange(unique_labels.max() + 1, dtype=merged_array.dtype)
+#     for label in unique_labels:
+#         if label in parent:
+#             mapping[label] = find(label)
             
-    return mapping[merged_array]
+#     return mapping[merged_array]
 
-def _relabel_consecutive(labeled_array):
-    """
-    Relabel array to have consecutive integer labels starting from 1.
+# def _relabel_consecutive(labeled_array):
+    # """
+    # Relabel array to have consecutive integer labels starting from 1.
 
-    Parameters
-    ----------
-    labeled_array : np.ndarray
-        3D array of labeled data with not necessarily consecutive integers.
+    # Parameters
+    # ----------
+    # labeled_array : np.ndarray
+    #     3D array of labeled data with not necessarily consecutive integers.
 
-    Returns
-    -------
-    np.ndarray
-        Relabeled array with consecutive integers.
-    """
-    # Get unique non-zero labels
-    unique_labels = np.unique(labeled_array[labeled_array > 0])
+    # Returns
+    # -------
+    # np.ndarray
+    #     Relabeled array with consecutive integers.
+    # """
+    # # Get unique non-zero labels
+    # unique_labels = np.unique(labeled_array[labeled_array > 0])
     
-    if len(unique_labels) == 0:
-        return labeled_array
+    # if len(unique_labels) == 0:
+    #     return labeled_array
     
-    # Create a lookup array: old_label -> new_label
-    # The maximum old label determines the size we need
-    max_label = unique_labels[-1]  # unique_labels is sorted
-    lookup = np.zeros(max_label + 1, dtype=labeled_array.dtype)
-    lookup[unique_labels] = np.arange(1, len(unique_labels) + 1, dtype=labeled_array.dtype)
+    # # Create a lookup array: old_label -> new_label
+    # # The maximum old label determines the size we need
+    # max_label = unique_labels[-1]  # unique_labels is sorted
+    # lookup = np.zeros(max_label + 1, dtype=labeled_array.dtype)
+    # lookup[unique_labels] = np.arange(1, len(unique_labels) + 1, dtype=labeled_array.dtype)
     
-    # Apply the mapping using fancy indexing
-    # This is MUCH faster than looping
-    result = lookup[labeled_array]
+    # # Apply the mapping using fancy indexing
+    # # This is MUCH faster than looping
+    # result = lookup[labeled_array]
     
-    return result
-
+    # return result
 
 
 # @profile_
