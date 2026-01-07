@@ -650,8 +650,8 @@ def watershed_3d_overlap_parallel(
     mintime=24,
     connectLon=0,
     extend_size_ratio=0.25,
-    n_chunks_lat=1,
-    n_chunks_lon=1,
+    n_chunks_lat=2,
+    n_chunks_lon=2,
     overlap_cells=None
 ):
     """
@@ -834,8 +834,7 @@ def watershed_3d_overlap_parallel(
             lat_chunks,
             lon_chunks
         )
-        
-        final_result = shared_output_arr.copy()
+        final_result = _relabel_consecutive(shared_output_arr.copy())
 
     finally:
         # CLEANUP
@@ -849,6 +848,38 @@ def watershed_3d_overlap_parallel(
         final_result = ConnectLon_on_timestep(final_result.astype("int"))
     
     return final_result
+
+def _relabel_consecutive(labeled_array):
+    """
+    Relabel array to have consecutive integer labels starting from 1.
+
+    Parameters
+    ----------
+    labeled_array : np.ndarray
+        3D array of labeled data with not necessarily consecutive integers.
+
+    Returns
+    -------
+    np.ndarray
+        Relabeled array with consecutive integers.
+    """
+    # Get unique non-zero labels
+    unique_labels = np.unique(labeled_array[labeled_array > 0])
+    
+    if len(unique_labels) == 0:
+        return labeled_array
+    
+    # Create a lookup array: old_label -> new_label
+    # The maximum old label determines the size we need
+    max_label = unique_labels[-1]  # unique_labels is sorted
+    lookup = np.zeros(max_label + 1, dtype=labeled_array.dtype)
+    lookup[unique_labels] = np.arange(1, len(unique_labels) + 1, dtype=labeled_array.dtype)
+    
+    # Apply the mapping using fancy indexing
+    # This is MUCH faster than looping
+    result = lookup[labeled_array]
+    
+    return result
 
 def _process_watershed_chunk_no_return(
     meta,
@@ -1028,6 +1059,9 @@ def _build_merge_map_shm(merged_array, flat_halos, chunk_results, chunk_offsets,
         # We assume alignment starts at 0,0,0 relative to the overlap interface
         h_cut = halo_data[:d0, :d1, :d2]
         c_cut = core_slice_raw[:d0, :d1, :d2]
+
+        if d0 < halo_data.shape[0] or d1 < halo_data.shape[1] or d2 < halo_data.shape[2]:
+            print(f"Warning: Clipping Halo overlap from {halo_data.shape} to {(d0, d1, d2)}")
 
         # --- FIX FOR RATIO CALCULATION ---
         # 1. Determine the full area of halo objects within this specific window
