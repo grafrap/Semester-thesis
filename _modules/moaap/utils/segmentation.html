@@ -781,6 +781,7 @@
 <span class="sd">        Number of chunks to split longitude dimension</span>
 <span class="sd">    overlap_cells : int, optional</span>
 <span class="sd">        Number of overlapping cells between chunks. If None, uses min_dist * 2</span>
+<span class="sd">    </span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    np.ndarray</span>
@@ -992,6 +993,39 @@
     <span class="n">max_treshold</span><span class="p">,</span>
     <span class="n">min_dist</span>
 <span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process a single watershed chunk in shared memory without returning large arrays.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    meta : Dict</span>
+<span class="sd">        Metadata for the chunk (boundaries, halo shapes, offsets).</span>
+<span class="sd">    shm_input_name : str</span>
+<span class="sd">        Name of the shared memory for input data.</span>
+<span class="sd">    shm_output_name : str</span>
+<span class="sd">        Name of the shared memory for output data.</span>
+<span class="sd">    shm_halos_name : str</span>
+<span class="sd">        Name of the shared memory for halo data.</span>
+<span class="sd">    shape : Tuple[int]</span>
+<span class="sd">        Shape of the full data array.</span>
+<span class="sd">    dtype_in : np.dtype</span>
+<span class="sd">        Data type of the input data.</span>
+<span class="sd">    dtype_out : np.dtype</span>
+<span class="sd">        Data type of the output data.</span>
+<span class="sd">    object_threshold : float</span>
+<span class="sd">        Threshold to create binary object mask.</span>
+<span class="sd">    max_treshold : float</span>
+<span class="sd">        Threshold for identifying maximum points for spreading.</span>
+<span class="sd">    min_dist : int</span>
+<span class="sd">        Minimum distance (in grid cells) between maximum points.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    Dict</span>
+<span class="sd">        max_label : int</span>
+<span class="sd">            Maximum label found in this chunk.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># Attach to shared memories</span>
     <span class="n">shm_in</span> <span class="o">=</span> <span class="n">shared_memory</span><span class="o">.</span><span class="n">SharedMemory</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">shm_input_name</span><span class="p">)</span>
     <span class="n">shm_out</span> <span class="o">=</span> <span class="n">shared_memory</span><span class="o">.</span><span class="n">SharedMemory</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">shm_output_name</span><span class="p">)</span>
@@ -1102,7 +1136,7 @@
     
     <span class="n">total_max_label</span> <span class="o">=</span> <span class="n">current_offset</span>
 
-    <span class="c1"># 2. Build Merge Map</span>
+    <span class="c1"># Build Merge Map</span>
     <span class="n">global_map</span> <span class="o">=</span> <span class="n">_build_merge_map_shm</span><span class="p">(</span>
         <span class="n">merged_array</span><span class="p">,</span> 
         <span class="n">flat_halos</span><span class="p">,</span>   <span class="c1"># Pass flat buffer</span>
@@ -1111,12 +1145,36 @@
         <span class="n">total_max_label</span>
     <span class="p">)</span>
 
-    <span class="c1"># 3. Apply Map In-Place</span>
+    <span class="c1"># Apply Map In-Place</span>
     <span class="n">_apply_map_inplace</span><span class="p">(</span><span class="n">merged_array</span><span class="p">,</span> <span class="n">chunk_results</span><span class="p">,</span> <span class="n">chunk_offsets</span><span class="p">,</span> <span class="n">global_map</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">merged_array</span>
 
 <span class="k">def</span><span class="w"> </span><span class="nf">_build_merge_map_shm</span><span class="p">(</span><span class="n">merged_array</span><span class="p">,</span> <span class="n">flat_halos</span><span class="p">,</span> <span class="n">chunk_results</span><span class="p">,</span> <span class="n">chunk_offsets</span><span class="p">,</span> <span class="n">total_max_label</span><span class="p">,</span> <span class="n">overlap_match_threshold</span><span class="o">=</span><span class="mf">0.5</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a merge map for watershed labels across chunk boundaries using shared memory halos. This is done using union-find on the lablels </span>
+<span class="sd">    of the halo and its neighboring core region.</span>
+<span class="sd">    </span>
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    merged_array : np.ndarray</span>
+<span class="sd">        The full merged watershed array from all chunks.</span>
+<span class="sd">    flat_halos : np.ndarray</span>
+<span class="sd">        Flat array containing all halo data from chunks.</span>
+<span class="sd">    chunk_results : list of dict</span>
+<span class="sd">        Metadata for each chunk including halo offsets and shapes.</span>
+<span class="sd">    chunk_offsets : dict</span>
+<span class="sd">        Offsets for each chunk&#39;s labels in the global label space.</span>
+<span class="sd">    total_max_label : int</span>
+<span class="sd">        Total number of unique labels across all chunks.</span>
+<span class="sd">    overlap_match_threshold : float, optional</span>
+<span class="sd">        Threshold for considering a halo-core overlap as a match, by default 0.5.</span>
+<span class="sd">        </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    list</span>
+<span class="sd">        A list mapping each label to its root label after merging.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">parent</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">total_max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
     
     <span class="k">def</span><span class="w"> </span><span class="nf">find</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
@@ -1140,29 +1198,21 @@
         <span class="c1"># Reshape the flat halo slice back to 3D</span>
         <span class="n">halo_data</span> <span class="o">=</span> <span class="n">halo_flat_slice</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">halo_shape</span><span class="p">)</span>
         
-        <span class="c1"># --- FIX FOR VALUE ERROR (Broadcasting mismatch) ---</span>
-        <span class="c1"># The halo extracted might be slightly larger than the neighbor&#39;s core </span>
-        <span class="c1"># (e.g. at domain edges or if chunks are uneven).</span>
-        <span class="c1"># We must slice both arrays to the intersection of their shapes.</span>
-        
-        <span class="c1"># 1. Determine the common shape</span>
+        <span class="c1"># Determine the common shape</span>
         <span class="n">d0</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">core_slice_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         <span class="n">d1</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">core_slice_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">d2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">core_slice_raw</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
         
         <span class="k">if</span> <span class="n">d0</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d1</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">d2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span> <span class="k">return</span>
 
-        <span class="c1"># 2. Slice both arrays to this common shape</span>
-        <span class="c1"># We assume alignment starts at 0,0,0 relative to the overlap interface</span>
+        <span class="c1"># Slice both arrays to this common shape</span>
         <span class="n">h_cut</span> <span class="o">=</span> <span class="n">halo_data</span><span class="p">[:</span><span class="n">d0</span><span class="p">,</span> <span class="p">:</span><span class="n">d1</span><span class="p">,</span> <span class="p">:</span><span class="n">d2</span><span class="p">]</span>
         <span class="n">c_cut</span> <span class="o">=</span> <span class="n">core_slice_raw</span><span class="p">[:</span><span class="n">d0</span><span class="p">,</span> <span class="p">:</span><span class="n">d1</span><span class="p">,</span> <span class="p">:</span><span class="n">d2</span><span class="p">]</span>
 
         <span class="k">if</span> <span class="n">d0</span> <span class="o">&lt;</span> <span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">or</span> <span class="n">d1</span> <span class="o">&lt;</span> <span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">or</span> <span class="n">d2</span> <span class="o">&lt;</span> <span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]:</span>
             <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Warning: Clipping Halo overlap from </span><span class="si">{</span><span class="n">halo_data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="p">(</span><span class="n">d0</span><span class="p">,</span><span class="w"> </span><span class="n">d1</span><span class="p">,</span><span class="w"> </span><span class="n">d2</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
-        <span class="c1"># --- FIX FOR RATIO CALCULATION ---</span>
-        <span class="c1"># 1. Determine the full area of halo objects within this specific window</span>
-        <span class="c1">#    (independent of whether they overlap with the core)</span>
+        <span class="c1"># Determine the full area of halo objects within this specific window</span>
         <span class="n">mask_halo_only</span> <span class="o">=</span> <span class="n">h_cut</span> <span class="o">&gt;</span> <span class="mi">0</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_halo_only</span><span class="p">):</span> <span class="k">return</span>
 
@@ -1177,7 +1227,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span>
 
-        <span class="c1"># 2. Determine Intersections</span>
+        <span class="c1"># Determine Intersections</span>
         <span class="n">mask_intersect</span> <span class="o">=</span> <span class="n">mask_halo_only</span> <span class="o">&amp;</span> <span class="p">(</span><span class="n">c_cut</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">mask_intersect</span><span class="p">):</span> <span class="k">return</span>
 
@@ -1215,12 +1265,6 @@
                 <span class="n">start</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;lat_halo_offset&#39;</span><span class="p">]</span>
                 <span class="n">end</span> <span class="o">=</span> <span class="n">start</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
                 <span class="n">halo_view</span> <span class="o">=</span> <span class="n">flat_halos</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
-                
-                <span class="c1"># Neighbor Core</span>
-                <span class="c1"># FIX: We must be careful not to slice beyond the array bounds</span>
-                <span class="c1"># The neighbor is grid_map[(i+1, j)]</span>
-                <span class="c1"># The halo from &#39;res&#39; corresponds to the BOTTOM of &#39;res&#39;</span>
-                <span class="c1"># It should match the TOP of &#39;neighbor&#39;</span>
                 
                 <span class="n">neighbor_res</span> <span class="o">=</span> <span class="n">grid_map</span><span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">j</span><span class="p">)]</span>
                 
@@ -1314,6 +1358,21 @@
 <span class="k">def</span><span class="w"> </span><span class="nf">_apply_map_inplace</span><span class="p">(</span><span class="n">merged_array</span><span class="p">,</span> <span class="n">chunk_results</span><span class="p">,</span> <span class="n">chunk_offsets</span><span class="p">,</span> <span class="n">global_map</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Applies the global mapping to the shared array block-by-block.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    merged_array : np.ndarray</span>
+<span class="sd">        The shared array containing the merged watershed results.</span>
+<span class="sd">    chunk_results : list of dict</span>
+<span class="sd">        Metadata for each chunk processed.</span>
+<span class="sd">    chunk_offsets : dict</span>
+<span class="sd">        Offsets for each chunk&#39;s local labels in the global map.</span>
+<span class="sd">    global_map : np.ndarray</span>
+<span class="sd">        The global mapping array from local to global labels.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+<span class="sd">    None</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    Applying labels in-place...&quot;</span><span class="p">)</span>
     
@@ -1325,20 +1384,18 @@
         <span class="k">if</span> <span class="n">max_local_label</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">continue</span>
 
-        <span class="c1"># Create Local Lookup Table (LUT)</span>
+        <span class="c1"># Create Local Lookup Table</span>
         <span class="c1"># Size = max local label + 1 (to include 0)</span>
         <span class="n">local_lut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_local_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
         
-        <span class="c1"># FIX: Explicitly keep background 0 -&gt; 0</span>
+        <span class="c1"># Explicitly keep background 0 -&gt; 0</span>
         <span class="n">local_lut</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
         
-        <span class="c1"># FIX: Only map objects (indices 1..max)</span>
         <span class="k">if</span> <span class="n">max_local_label</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">start_idx</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="n">end_idx</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">max_local_label</span> <span class="o">+</span> <span class="mi">1</span>
             <span class="n">local_lut</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="n">global_map</span><span class="p">[</span><span class="n">start_idx</span> <span class="p">:</span> <span class="n">end_idx</span><span class="p">]</span>
         
-        <span class="c1"># --- FIX FOR KEY ERROR ---</span>
         <span class="c1"># Unpack the bounds from the metadata tuples</span>
         <span class="c1"># lat_bounds = (start, end, core_start, core_end)</span>
         <span class="n">lat_core_start</span> <span class="o">=</span> <span class="n">res</span><span class="p">[</span><span class="s1">&#39;lat_bounds&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
