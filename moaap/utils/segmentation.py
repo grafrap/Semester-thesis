@@ -814,7 +814,8 @@ def watershed_3d_overlap_parallel(
             ))
         
         # --- 4. RUN PARALLEL ---
-        with mp.Pool() as pool:
+        ctx = mp.get_context('spawn')
+        with ctx.Pool() as pool:
             # Workers return TINY metadata only (max_label, etc.)
             worker_results = pool.starmap(_process_watershed_chunk_no_return, chunk_args)
 
