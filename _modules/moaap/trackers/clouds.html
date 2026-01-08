@@ -156,25 +156,25 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        track  clouds&#39;</span><span class="p">)</span>
-    <span class="n">rgiObj_Struct</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">));</span> <span class="n">rgiObj_Struct</span><span class="p">[:,:,:]</span><span class="o">=</span><span class="mi">1</span>
-    <span class="c1"># Csmooth=gaussian_filter(tb, sigma=(0,SmoothSigmaC,SmoothSigmaC))</span>
-    <span class="n">Cmask</span> <span class="o">=</span> <span class="p">(</span><span class="n">tb</span> <span class="o">&lt;=</span> <span class="n">Cthreshold</span><span class="p">)</span>
-    <span class="n">rgiObjectsC</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">Cmask</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nr_objectsUD</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; cloud object found&#39;</span><span class="p">)</span>
+    <span class="c1"># rgiObj_Struct=np.zeros((3,3,3)); rgiObj_Struct[:,:,:]=1</span>
+    <span class="c1"># # Csmooth=gaussian_filter(tb, sigma=(0,SmoothSigmaC,SmoothSigmaC))</span>
+    <span class="c1"># Cmask = (tb &lt;= Cthreshold)</span>
+    <span class="c1"># rgiObjectsC, nr_objectsUD = ndimage.label(Cmask, structure=rgiObj_Struct)</span>
+    <span class="c1"># print(&#39;        &#39;+str(nr_objectsUD)+&#39; cloud object found&#39;)</span>
 
-    <span class="c1"># if connectLon == 1:</span>
-    <span class="c1">#     # connect objects over date line</span>
-    <span class="c1">#     rgiObjectsC = ConnectLon(rgiObjectsC)</span>
+    <span class="c1"># # if connectLon == 1:</span>
+    <span class="c1"># #     # connect objects over date line</span>
+    <span class="c1"># #     rgiObjectsC = ConnectLon(rgiObjectsC)</span>
         
         
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        fast way that removes obviously too small objects&#39;</span><span class="p">)</span>
-    <span class="n">unique</span><span class="p">,</span> <span class="n">counts</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">rgiObjectsC</span><span class="p">,</span> <span class="n">return_counts</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">min_vol</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">((</span><span class="n">CL_Area</span> <span class="o">*</span> <span class="p">(</span><span class="n">MCS_minTime</span><span class="o">/</span><span class="n">dT</span><span class="p">))</span> <span class="o">/</span> <span class="p">((</span><span class="n">Gridspacing</span> <span class="o">/</span> <span class="mf">1000.</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span> <span class="c1"># minimum grid cells requ. for MCS</span>
-    <span class="n">remove</span> <span class="o">=</span> <span class="n">unique</span><span class="p">[</span><span class="n">counts</span> <span class="o">&lt;</span> <span class="n">min_vol</span><span class="p">]</span>
-    <span class="n">rgiObjectsC</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">rgiObjectsC</span><span class="p">,</span> <span class="n">remove</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># print(&#39;        fast way that removes obviously too small objects&#39;)</span>
+    <span class="c1"># unique, counts = np.unique(rgiObjectsC, return_counts=True)</span>
+    <span class="c1"># min_vol = np.round((CL_Area * (MCS_minTime/dT)) / ((Gridspacing / 1000.)**2)) # minimum grid cells requ. for MCS</span>
+    <span class="c1"># remove = unique[counts &lt; min_vol]</span>
+    <span class="c1"># rgiObjectsC[np.isin(rgiObjectsC, remove)] = 0</span>
     
-    <span class="n">C_objects</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">rgiObjectsC</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nr_objectsUD</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; cloud object remaining&#39;</span><span class="p">)</span>
+    <span class="c1"># C_objects, nr_objectsUD = ndimage.label(rgiObjectsC, structure=rgiObj_Struct)</span>
+    <span class="c1"># print(&#39;        &#39;+str(nr_objectsUD)+&#39; cloud object remaining&#39;)</span>
     
 
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living cloud shield objects with &#39;</span><span class="o">+</span><span class="n">breakup</span><span class="o">+</span><span class="s1">&#39; that have many elements&#39;</span><span class="p">)</span>
@@ -187,7 +187,7 @@
         <span class="c1">#                6,  # at least six grid cells apart </span>
         <span class="c1">#                1)</span>
         <span class="n">threshold</span><span class="o">=</span><span class="mi">1</span>
-        <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">(((</span><span class="n">CL_Area</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mi">1000</span><span class="p">))</span><span class="o">*</span><span class="mi">2</span>
+        <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">CL_Area</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">))</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mi">1000</span><span class="p">))</span><span class="o">*</span><span class="mi">2</span>
 
         <span class="n">C_objects</span> <span class="o">=</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">(</span>
                 <span class="n">tb</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
