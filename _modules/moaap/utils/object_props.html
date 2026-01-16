@@ -541,55 +541,71 @@
 <span class="sd">        Updated split/merge history dictionary.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     
-    <span class="n">object_indices</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">find_objects</span><span class="p">(</span><span class="n">DATA</span><span class="p">)</span>
-    <span class="n">MaxOb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">DATA</span><span class="p">)</span>
-    <span class="n">MinLif</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="mi">24</span> <span class="o">/</span> <span class="n">dT</span><span class="p">)</span>  <span class="c1"># min lifetime of object to be split</span>
-    <span class="n">AVmax</span> <span class="o">=</span> <span class="mf">1.5</span>
-
-    <span class="n">id_translate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">object_indices</span><span class="p">),</span><span class="mi">2</span><span class="p">))</span>
-    <span class="n">objectsTMP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">DATA</span><span class="p">)</span>
-    <span class="n">ii</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">object_indices</span><span class="p">)):</span>
-        <span class="k">if</span> <span class="n">object_indices</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">object_indices</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">object_indices</span><span class="p">[</span><span class="n">obj</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span> <span class="o">&gt;=</span> <span class="n">min_tsteps</span> <span class="o">/</span> <span class="n">dT</span><span class="p">:</span>
-                <span class="n">Obj_tmp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">objectsTMP</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">obj</span><span class="p">]])</span>
-                <span class="n">Obj_tmp</span><span class="p">[</span><span class="n">DATA</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">obj</span><span class="p">]]</span> <span class="o">==</span> <span class="n">obj</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
-                <span class="n">objectsTMP</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">obj</span><span class="p">]]</span> <span class="o">=</span> <span class="n">Obj_tmp</span>
-                <span class="n">id_translate</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">+</span><span class="mi">1</span>
-                <span class="n">id_translate</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ii</span>
-                <span class="n">ii</span> <span class="o">=</span> <span class="n">ii</span> <span class="o">+</span> <span class="mi">1</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">id_translate</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">+</span><span class="mi">1</span>
-                <span class="n">id_translate</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">id_translate</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">obj</span><span class="o">+</span><span class="mi">1</span>
-            <span class="n">id_translate</span><span class="p">[</span><span class="n">obj</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-
-    <span class="c1"># adjust the directory strucutre accordingly</span>
-    <span class="n">obj_splitmerge_clean</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="k">if</span> <span class="n">obj_splitmerge</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">id_translate</span> <span class="o">=</span> <span class="n">id_translate</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>  
-        <span class="n">keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">obj_splitmerge</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-        <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)):</span>
-            <span class="n">obj_loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">keys</span><span class="p">)[</span><span class="n">jj</span><span class="p">])</span> <span class="o">==</span> <span class="n">id_translate</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">id_translate</span><span class="p">[</span><span class="n">obj_loc</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-                <span class="k">del</span> <span class="n">obj_splitmerge</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">keys</span><span class="p">)[</span><span class="n">jj</span><span class="p">]]</span>
-
-        <span class="c1"># loop over objects and relable their indices if nescessary</span>
-        <span class="n">obj_splitmerge_clean</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="n">keys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">obj_splitmerge</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-        <span class="n">core_translate</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">id_translate</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">keys</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">))</span>
-        <span class="n">id_translate</span> <span class="o">=</span> <span class="n">id_translate</span><span class="p">[</span><span class="n">core_translate</span><span class="p">,:]</span>
-        <span class="k">for</span> <span class="n">jj</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)):</span>
-            <span class="n">obj_loc</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">keys</span><span class="p">)[</span><span class="n">jj</span><span class="p">])</span> <span class="o">==</span> <span class="n">id_translate</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-            <span class="n">mergsplit</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">obj_splitmerge</span><span class="p">[</span><span class="n">keys</span><span class="p">[</span><span class="n">jj</span><span class="p">]])</span>
-            <span class="k">for</span> <span class="n">kk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">id_translate</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
-                <span class="n">mergsplit</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">mergsplit</span><span class="p">,</span> <span class="n">id_translate</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span><span class="mi">0</span><span class="p">])]</span> <span class="o">=</span> <span class="n">id_translate</span><span class="p">[</span><span class="n">kk</span><span class="p">,</span><span class="mi">1</span><span class="p">]</span>
-            <span class="n">obj_splitmerge_clean</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">id_translate</span><span class="p">[</span><span class="n">obj_loc</span><span class="p">,</span><span class="mi">1</span><span class="p">]))]</span> <span class="o">=</span> <span class="n">mergsplit</span>
+    <span class="c1"># 1. Find object slices (fast C-level operation)</span>
+    <span class="n">object_slices</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">find_objects</span><span class="p">(</span><span class="n">DATA</span><span class="p">)</span>
+    <span class="n">max_label</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">object_slices</span><span class="p">)</span>
+    
+    <span class="c1"># 2. Create a Lookup Table (LUT)</span>
+    <span class="c1"># Index = Old Label, Value = New Label</span>
+    <span class="c1"># We initialize with 0 (background)</span>
+    <span class="n">lut</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">max_label</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">DATA</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    
+    <span class="n">min_duration</span> <span class="o">=</span> <span class="n">min_tsteps</span> <span class="o">/</span> <span class="n">dT</span>
+    <span class="n">new_label_counter</span> <span class="o">=</span> <span class="mi">1</span>
+    
+    <span class="c1"># 3. Populate LUT (Pure metadata calculation, no array manipulation yet)</span>
+    <span class="c1"># We iterate over slices, which is fast because we aren&#39;t touching the heavy 3D data</span>
+    <span class="k">for</span> <span class="n">old_label_idx</span><span class="p">,</span> <span class="n">slc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">object_slices</span><span class="p">):</span>
+        <span class="n">old_label</span> <span class="o">=</span> <span class="n">old_label_idx</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># find_objects ignores 0, so index 0 is label 1</span>
         
-    <span class="k">return</span> <span class="n">objectsTMP</span><span class="p">,</span> <span class="n">obj_splitmerge_clean</span></div>
+        <span class="k">if</span> <span class="n">slc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># Check duration (time is the first axis: index 0)</span>
+            <span class="n">duration</span> <span class="o">=</span> <span class="n">slc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">stop</span> <span class="o">-</span> <span class="n">slc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">start</span>
+            
+            <span class="k">if</span> <span class="n">duration</span> <span class="o">&gt;=</span> <span class="n">min_duration</span><span class="p">:</span>
+                <span class="n">lut</span><span class="p">[</span><span class="n">old_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_label_counter</span>
+                <span class="n">new_label_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="c1"># else: lut[old_label] remains 0 (deleted)</span>
+        <span class="c1"># else: lut[old_label] remains 0 (was missing)</span>
 
+    <span class="c1"># 4. Apply LUT to the entire 3D array in one shot</span>
+    <span class="c1"># This replaces the entire previous loop and masking logic</span>
+    <span class="n">objects_cleaned</span> <span class="o">=</span> <span class="n">lut</span><span class="p">[</span><span class="n">DATA</span><span class="p">]</span>
+
+    <span class="c1"># 5. Handle Dictionary Optimization</span>
+    <span class="n">obj_splitmerge_clean</span> <span class="o">=</span> <span class="p">{}</span>
+    
+    <span class="k">if</span> <span class="n">obj_splitmerge</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Vectorized update of the dictionary keys and values</span>
+        <span class="k">for</span> <span class="n">old_key_str</span><span class="p">,</span> <span class="n">split_list</span> <span class="ow">in</span> <span class="n">obj_splitmerge</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="n">old_key</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">old_key_str</span><span class="p">)</span>
+            
+            <span class="c1"># Get the new ID for this object</span>
+            <span class="k">if</span> <span class="n">old_key</span> <span class="o">&lt;=</span> <span class="n">max_label</span><span class="p">:</span>
+                <span class="n">new_key</span> <span class="o">=</span> <span class="n">lut</span><span class="p">[</span><span class="n">old_key</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_key</span> <span class="o">=</span> <span class="mi">0</span> <span class="c1"># Out of bounds</span>
+            
+            <span class="c1"># Only keep entry if the main object survived (new_key &gt; 0)</span>
+            <span class="k">if</span> <span class="n">new_key</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># Update the values in the list using the same LUT</span>
+                <span class="c1"># Filter out values that point to deleted objects (0) if desired, </span>
+                <span class="c1"># or keep them. Here we update them.</span>
+                <span class="n">split_arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">split_list</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+                
+                <span class="c1"># We need to handle IDs in split_list that might be larger than our current max_label</span>
+                <span class="c1"># (though usually they shouldn&#39;t be). Clip or check bounds safe.</span>
+                <span class="n">valid_indices</span> <span class="o">=</span> <span class="n">split_arr</span> <span class="o">&lt;=</span> <span class="n">max_label</span>
+                
+                <span class="n">new_split_list</span> <span class="o">=</span> <span class="n">split_arr</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="c1"># Update valid IDs</span>
+                <span class="n">new_split_list</span><span class="p">[</span><span class="n">valid_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">lut</span><span class="p">[</span><span class="n">split_arr</span><span class="p">[</span><span class="n">valid_indices</span><span class="p">]]</span>
+                <span class="c1"># Invalid/Deleted IDs become 0. You might want to filter 0s out:</span>
+                <span class="c1"># new_split_list = new_split_list[new_split_list &gt; 0] </span>
+                
+                <span class="n">obj_splitmerge_clean</span><span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">new_key</span><span class="p">)]</span> <span class="o">=</span> <span class="n">new_split_list</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">objects_cleaned</span><span class="p">,</span> <span class="n">obj_splitmerge_clean</span></div>
 
 
 <span class="c1"># https://stackoverflow.com/questions/13542855/algorithm-to-find-the-minimum-area-rectangle-for-given-points-in-order-to-comput/33619018#33619018</span>
