@@ -737,7 +737,6 @@
     <span class="k">return</span> <span class="n">watershed_results</span></div>
 
 
-
 <div class="viewcode-block" id="watershed_3d_overlap_parallel">
 <a class="viewcode-back" href="../../../modules.html#moaap.utils.segmentation.watershed_3d_overlap_parallel">[docs]</a>
 <span class="k">def</span><span class="w"> </span><span class="nf">watershed_3d_overlap_parallel</span><span class="p">(</span>
@@ -749,9 +748,10 @@
     <span class="n">mintime</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
     <span class="n">connectLon</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
     <span class="n">extend_size_ratio</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span>
-    <span class="n">n_chunks_lat</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">n_chunks_lon</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">overlap_cells</span><span class="o">=</span><span class="kc">None</span>
+    <span class="n">n_chunks_lat</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">n_chunks_lon</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">overlap_cells</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">mp_method</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span> <span class="c1"># &lt;--- NEW KEYWORD</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Parallel version of watershed_3d_overlap using domain decomposition.</span>
@@ -787,37 +787,20 @@
 <span class="sd">    np.ndarray</span>
 <span class="sd">        3D matrix with watershed labels</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Add check for no parallelization, this should be called if no chunks are set, i.e. n_chunks_lat = n_chunks_lon = 1</span>
-    <span class="c1"># And if both are set to 1, check if enough memory is available to run the non-parallel version. </span>
-    <span class="c1"># Based on numerical experiments, the memory requirement is roughly 4 bytes * sizeof(data) * 12</span>
-    <span class="c1"># watershed is depending on a threshold and therefore the data does not need to be stored in double precision</span>
+
     <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> 
 
-    <span class="n">estimated_memory_bytes</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">12</span> <span class="o">*</span> <span class="mf">1.2</span> <span class="c1"># Rough estimate for watershed processing + some buffer</span>
-    <span class="c1"># get available memory in bytes</span>
-    <span class="n">available_memory</span> <span class="o">=</span> <span class="n">psutil</span><span class="o">.</span><span class="n">virtual_memory</span><span class="p">()</span><span class="o">.</span><span class="n">free</span>
-
-    <span class="k">if</span> <span class="n">n_chunks_lat</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_chunks_lon</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">estimated_memory_bytes</span> <span class="o">&lt;</span> <span class="n">available_memory</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">watershed_3d_overlap</span><span class="p">(</span>
-            <span class="n">data</span><span class="p">,</span>
-            <span class="n">object_threshold</span><span class="p">,</span>
-            <span class="n">max_treshold</span><span class="p">,</span>
-            <span class="n">min_dist</span><span class="p">,</span>
-            <span class="n">dT</span><span class="p">,</span>
-            <span class="n">mintime</span><span class="p">,</span>
-            <span class="n">connectLon</span><span class="p">,</span>
-            <span class="n">extend_size_ratio</span>
-        <span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">n_chunks_lat</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_chunks_lon</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">n_chunks_lat</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n_chunks_lon</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">num_proc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1"># get one less for system processes</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Auto-detecting number of processes: </span><span class="si">{</span><span class="n">num_proc</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">num_proc</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="n">num_proc</span><span class="p">)</span> <span class="c1"># limit to 16 processes max to avoid oversubscription</span>
         <span class="n">lat</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
         <span class="n">lon</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Shape of the data to watershed: </span><span class="si">{</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">r</span> <span class="o">=</span> <span class="n">lon</span><span class="o">/</span><span class="n">lat</span>
-        <span class="n">n_chunks_lon</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_proc</span> <span class="o">*</span> <span class="n">r</span><span class="p">)))</span>
-        <span class="n">n_chunks_lat</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">num_proc</span> <span class="o">/</span> <span class="n">n_chunks_lon</span><span class="p">))</span>
-        <span class="nb">print</span><span class="p">(</span><span class="n">n_chunks_lat</span><span class="p">,</span> <span class="n">n_chunks_lon</span><span class="p">)</span>
+        <span class="n">n_chunks_lon</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">num_proc</span> <span class="o">*</span> <span class="n">r</span><span class="p">)))</span>
+        <span class="n">n_chunks_lat</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">num_proc</span> <span class="o">/</span> <span class="n">n_chunks_lon</span><span class="p">))</span>
+        <span class="c1"># print(n_chunks_lat, n_chunks_lon)</span>
         <span class="k">while</span> <span class="n">n_chunks_lat</span> <span class="o">*</span> <span class="n">n_chunks_lon</span> <span class="o">&gt;</span> <span class="n">num_proc</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">n_chunks_lon</span> <span class="o">&gt;</span> <span class="n">n_chunks_lat</span> <span class="o">*</span> <span class="n">r</span> <span class="ow">and</span> <span class="n">n_chunks_lon</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">n_chunks_lat</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
                 <span class="n">n_chunks_lon</span> <span class="o">-=</span> <span class="mi">1</span>
@@ -892,6 +875,19 @@
     <span class="n">halo_bytes</span> <span class="o">=</span> <span class="n">total_halo_elements</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="n">out_dtype</span><span class="p">)</span><span class="o">.</span><span class="n">itemsize</span>
     <span class="n">shm_halos</span> <span class="o">=</span> <span class="n">shared_memory</span><span class="o">.</span><span class="n">SharedMemory</span><span class="p">(</span><span class="n">create</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="n">halo_bytes</span><span class="p">)</span>
     <span class="c1"># We don&#39;t create a single NDArray here because it&#39;s a flat buffer containing many arrays</span>
+
+    <span class="c1"># --- DECISION LOGIC (The &quot;Smart Switch&quot;) ---</span>
+    <span class="c1"># This block decides the strategy if &#39;auto&#39; is selected.</span>
+    <span class="k">if</span> <span class="n">mp_method</span> <span class="o">==</span> <span class="s1">&#39;auto&#39;</span><span class="p">:</span>
+        <span class="n">total_cells</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span>
+        <span class="c1"># Example thresholds (to be calibrated):</span>
+        <span class="n">FORK_LIMIT</span> <span class="o">=</span> <span class="mi">400000000</span>     <span class="c1"># Below 400M cells -&gt; Parallel (Fork)</span>
+                                   <span class="c1"># Above -&gt; Parallel (Spawn)</span>
+        
+        <span class="k">if</span> <span class="n">total_cells</span> <span class="o">&lt;</span> <span class="n">FORK_LIMIT</span><span class="p">:</span>
+            <span class="n">mp_method</span> <span class="o">=</span> <span class="s1">&#39;fork&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">mp_method</span> <span class="o">=</span> <span class="s1">&#39;spawn&#39;</span>
     
     <span class="k">try</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Processing </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">halo_metadata</span><span class="p">)</span><span class="si">}</span><span class="s2"> chunks with </span><span class="si">{</span><span class="n">halo_bytes</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mf">1e9</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB halo buffer...&quot;</span><span class="p">)</span>
@@ -912,9 +908,17 @@
             <span class="p">))</span>
         
         <span class="c1"># --- RUN PARALLEL ---</span>
-        <span class="n">ctx</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s1">&#39;spawn&#39;</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pool</span><span class="p">()</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
-            <span class="c1"># Workers return tiny metadata only (max_label, etc.)</span>
+        <span class="c1"># Modified to use the selected method</span>
+        <span class="k">if</span> <span class="n">mp_method</span> <span class="o">==</span> <span class="s1">&#39;spawn&#39;</span><span class="p">:</span>
+            <span class="n">ctx</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s1">&#39;spawn&#39;</span><span class="p">)</span>
+            <span class="n">PoolClass</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pool</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Default to &#39;fork&#39; (standard mp.Pool)</span>
+            <span class="c1"># WARNING: &#39;fork&#39; can deadlock with C-libs, but is faster for medium data</span>
+            <span class="n">ctx</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">get_context</span><span class="p">(</span><span class="s1">&#39;fork&#39;</span><span class="p">)</span>
+            <span class="n">PoolClass</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">Pool</span>
+
+        <span class="k">with</span> <span class="n">PoolClass</span><span class="p">()</span> <span class="k">as</span> <span class="n">pool</span><span class="p">:</span>
             <span class="n">worker_results</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="n">_process_watershed_chunk_no_return</span><span class="p">,</span> <span class="n">chunk_args</span><span class="p">)</span>
 
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    Merging chunk results...&quot;</span><span class="p">)</span>
