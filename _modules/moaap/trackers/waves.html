@@ -118,7 +118,7 @@
 <span class="sd">        Labeled object arrays for each wave type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">tb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tb</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>   <span class="c1"># very first line in the function</span>
+    <span class="n">tb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">tb</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
     <span class="n">ew_mintime</span> <span class="o">=</span> <span class="mi">32</span>
     
@@ -127,30 +127,11 @@
     <span class="n">tb_eq</span> <span class="o">=</span> <span class="n">tb</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
     <span class="n">tb_eq</span><span class="p">[</span><span class="n">tb_eq</span> <span class="o">&gt;</span> <span class="mi">350</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
     <span class="n">tb_eq</span><span class="p">[</span><span class="n">tb_eq</span> <span class="o">&lt;</span> <span class="mi">150</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
+
     <span class="c1"># compute anomalies</span>
     <span class="n">tb_eq</span> <span class="o">=</span> <span class="n">tb_eq</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">tb_eq</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">),</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">tb_eq</span> <span class="o">=</span> <span class="n">tb_eq</span> <span class="o">*</span> <span class="n">lat_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,:]</span>
     <span class="n">tb_eq</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">tb_eq</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">0</span>
-
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    valid = (tb_eq &gt;= 150) &amp; (tb_eq &lt;= 350)                   # bool view</span>
-<span class="sd">    # mean over valid points only, without building a big masked array:</span>
-<span class="sd">    sum_ = np.sum(np.where(valid, tb_eq, 0.0), axis=(1,2), keepdims=True, dtype=np.float32)</span>
-<span class="sd">    cnt_ = np.sum(valid,                    axis=(1,2), keepdims=True, dtype=np.int32)</span>
-<span class="sd">    mean_ = sum_ / np.maximum(cnt_, 1)</span>
-<span class="sd">    </span>
-<span class="sd">    tb_eq -= mean_.astype(np.float32, copy=False)             # center</span>
-<span class="sd">    tb_eq *= valid.astype(np.float32)                         # zero outside valid, no NaNs</span>
-<span class="sd">    </span>
-<span class="sd">    # 3) apply &amp; renormalize</span>
-<span class="sd">    w2 = np.mean(lat_mask**2)</span>
-<span class="sd">    tb_eq = (lat_mask * tb_eq) / np.sqrt(w2)</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    tb_eq = tb.copy()</span>
-<span class="sd">    tb_eq[:,np.abs(Lat[:,0]) &gt; 20] = 0</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     
     <span class="c1"># pad the Tb to avoid boundary effects</span>
     <span class="c1"># temporal turkey tapping:</span>
@@ -192,12 +173,6 @@
             <span class="n">threshold</span> <span class="o">=</span> <span class="n">eig0_th</span>
 
         <span class="n">amplitude</span> <span class="o">=</span> <span class="n">amplitude</span><span class="p">[</span><span class="n">pad_size</span><span class="p">:</span><span class="o">-</span><span class="n">pad_size</span><span class="p">]</span>
-        <span class="n">rgiObjectsUD</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;                &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nr_objectsUD</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; object found&#39;</span><span class="p">)</span>
-
-        <span class="n">wave_objects</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">clean_up_objects</span><span class="p">(</span><span class="n">rgiObjectsUD</span><span class="p">,</span>
-                              <span class="n">dT</span><span class="p">,</span>
-                              <span class="n">min_tsteps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">ew_mintime</span><span class="o">/</span><span class="n">dT</span><span class="p">))</span>
 
         <span class="k">if</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;breakup&#39;</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;                break up long tropical waves that have many elements&#39;</span><span class="p">)</span>
@@ -205,10 +180,8 @@
                                     <span class="nb">int</span><span class="p">(</span><span class="n">ew_mintime</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
                                     <span class="n">dT</span><span class="p">)</span>
         <span class="k">elif</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;watershed&#39;</span><span class="p">:</span>
-            <span class="c1"># threshold=0.1</span>
             <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="mi">1000</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">Gridspacing</span><span class="p">)</span>
             <span class="n">wave_amp</span> <span class="o">=</span> <span class="n">amplitude</span>
-            <span class="c1">#wave_amp[rgiObjectsUD == 0] = 0</span>
             <span class="n">wave_objects</span> <span class="o">=</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">(</span>
                     <span class="n">wave_amp</span> <span class="o">*-</span><span class="mi">1</span><span class="p">,</span>
                     <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">threshold</span><span class="p">),</span>
@@ -260,13 +233,6 @@
 
 <span class="sd">                      &quot;&quot;&quot;</span>
         <span class="n">ntim</span><span class="p">,</span> <span class="n">nlat</span><span class="p">,</span> <span class="n">nlon</span> <span class="o">=</span> <span class="n">datain</span><span class="o">.</span><span class="n">shape</span>
-
-        <span class="c1">#remove the lowest three harmonics of the seasonal cycle (WK99, WKW03)</span>
-<span class="c1">##         if ntim &gt; 365*spd/3:</span>
-<span class="c1">##             rf = fftpack.rfft(datain,axis=0)</span>
-<span class="c1">##             freq = fftpack.rfftfreq(ntim*spd, d=1./float(spd))</span>
-<span class="c1">##             rf[(freq &lt;= 3./365) &amp; (freq &gt;=1./365),:,:] = 0.0     #freq&lt;=3./365 only??</span>
-<span class="c1">##             datain = fftpack.irfft(rf,axis=0)</span>
 
         <span class="c1">#remove dominal trend</span>
         <span class="n">data</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">detrend</span><span class="p">(</span><span class="n">datain</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>

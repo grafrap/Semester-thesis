@@ -156,27 +156,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        track  clouds&#39;</span><span class="p">)</span>
-    <span class="c1"># rgiObj_Struct=np.zeros((3,3,3)); rgiObj_Struct[:,:,:]=1</span>
-    <span class="c1"># # Csmooth=gaussian_filter(tb, sigma=(0,SmoothSigmaC,SmoothSigmaC))</span>
-    <span class="c1"># Cmask = (tb &lt;= Cthreshold)</span>
-    <span class="c1"># rgiObjectsC, nr_objectsUD = ndimage.label(Cmask, structure=rgiObj_Struct)</span>
-    <span class="c1"># print(&#39;        &#39;+str(nr_objectsUD)+&#39; cloud object found&#39;)</span>
-
-    <span class="c1"># # if connectLon == 1:</span>
-    <span class="c1"># #     # connect objects over date line</span>
-    <span class="c1"># #     rgiObjectsC = ConnectLon(rgiObjectsC)</span>
-        
-        
-    <span class="c1"># print(&#39;        fast way that removes obviously too small objects&#39;)</span>
-    <span class="c1"># unique, counts = np.unique(rgiObjectsC, return_counts=True)</span>
-    <span class="c1"># min_vol = np.round((CL_Area * (MCS_minTime/dT)) / ((Gridspacing / 1000.)**2)) # minimum grid cells requ. for MCS</span>
-    <span class="c1"># remove = unique[counts &lt; min_vol]</span>
-    <span class="c1"># rgiObjectsC[np.isin(rgiObjectsC, remove)] = 0</span>
-    
-    <span class="c1"># C_objects, nr_objectsUD = ndimage.label(rgiObjectsC, structure=rgiObj_Struct)</span>
-    <span class="c1"># print(&#39;        &#39;+str(nr_objectsUD)+&#39; cloud object remaining&#39;)</span>
-    
-
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living cloud shield objects with &#39;</span><span class="o">+</span><span class="n">breakup</span><span class="o">+</span><span class="s1">&#39; that have many elements&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;breakup&#39;</span><span class="p">:</span>
         <span class="n">C_objects</span><span class="p">,</span> <span class="n">object_split</span> <span class="o">=</span> <span class="n">BreakupObjects</span><span class="p">(</span><span class="n">C_objects</span><span class="p">,</span>
@@ -261,16 +240,12 @@
         <span class="n">tb_object_act</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tb_object_act</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span>
         <span class="n">tb_object_act</span><span class="p">[</span><span class="n">tb_object_act</span> <span class="o">==</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">iobj</span> <span class="o">+</span> <span class="mi">1</span>
 
-<span class="c1">#         window_length = int(MCS_minTime / dT)</span>
-<span class="c1">#         moving_averages = np.convolve(MCS_test, np.ones(window_length), &#39;valid&#39;) / window_length</span>
-
         <span class="k">if</span> <span class="n">MCS_test</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">TMP</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">MCS_objects_Tb</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">iobj</span><span class="p">]])</span>
             <span class="n">TMP</span> <span class="o">=</span> <span class="n">TMP</span> <span class="o">+</span> <span class="n">tb_object_act</span>
             <span class="n">MCS_objects_Tb</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">iobj</span><span class="p">]]</span> <span class="o">=</span> <span class="n">TMP</span>
 
         <span class="k">else</span><span class="p">:</span>
-            <span class="c1"># print([tb_size_test,tb_overshoot_test,pr_peak_test,pr_area_test])</span>
             <span class="k">continue</span>
 
     <span class="n">MCS_objects_Tb</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">clean_up_objects</span><span class="p">(</span><span class="n">MCS_objects_Tb</span><span class="p">,</span>
@@ -344,11 +319,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">CL_Area</span> <span class="o">=</span> <span class="n">min_dist</span> <span class="o">*</span> <span class="n">Gridspacing</span>
-    <span class="n">breakup</span> <span class="o">=</span> <span class="s1">&#39;watershed&#39;</span>
-    
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        track  clouds&#39;</span><span class="p">)</span>
-    <span class="n">Cmask</span> <span class="o">=</span> <span class="p">(</span><span class="n">tb</span> <span class="o">&lt;=</span> <span class="n">tb_threshold</span><span class="p">)</span>
-    
+   
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        track  clouds&#39;</span><span class="p">)</span>    
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living cloud shield objects with wathershedding&#39;</span><span class="p">)</span>
     
     <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">(((</span><span class="n">CL_Area</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mi">1000</span><span class="p">))</span><span class="o">*</span><span class="mi">2</span>

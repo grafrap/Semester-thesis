@@ -142,8 +142,7 @@
     <span class="n">slpsmoothAn</span><span class="p">[:,</span><span class="n">nan</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
     
     <span class="n">slp_Anomaly</span> <span class="o">=</span> <span class="n">slp_smooth</span><span class="o">-</span><span class="n">slpsmoothAn</span>
-<span class="c1">#     slp_Anomaly[:,Mask == 0] = np.nan</span>
-    <span class="c1"># plt.contour(slp_Anomaly[tt,:,:], levels=[-9990,-10,1100], colors=&#39;b&#39;)</span>
+
     <span class="n">Pressure_anomaly</span> <span class="o">=</span> <span class="n">slp_Anomaly</span> <span class="o">&lt;</span> <span class="n">MaxPresAnCY</span> <span class="c1"># 10 hPa depression | original setting was 12</span>
 
     <span class="n">rgiObjectsUD</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">Pressure_anomaly</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
@@ -283,20 +282,9 @@
     <span class="n">z500smoothAn</span><span class="p">[:,</span><span class="n">nan</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
     
     <span class="n">z500_Anomaly</span> <span class="o">=</span> <span class="n">z500_smooth</span> <span class="o">-</span> <span class="n">z500smoothAn</span>
-<span class="c1">#     z500_Anomaly[:,Mask == 0] = np.nan</span>
-
-    <span class="n">z_low</span> <span class="o">=</span> <span class="n">z500_Anomaly</span> <span class="o">&lt;</span> <span class="n">z500_low_anom</span>
-    <span class="n">z_high</span> <span class="o">=</span> <span class="n">z500_Anomaly</span> <span class="o">&gt;</span> <span class="n">z500_high_anom</span>
 
     <span class="c1"># -------------------------------------</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;    track 500 hPa cyclones&#39;</span><span class="p">)</span>
-<span class="c1">#             z_low[:,Mask == 0] = 0</span>
-    <span class="n">rgiObjectsUD</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">z_low</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;            &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nr_objectsUD</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; object found&#39;</span><span class="p">)</span>
-
-    <span class="n">cy_z500_objects</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">clean_up_objects</span><span class="p">(</span><span class="n">rgiObjectsUD</span><span class="p">,</span>
-                                <span class="n">min_tsteps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">MinTimeCY</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
-                                 <span class="n">dT</span> <span class="o">=</span> <span class="n">dT</span><span class="p">)</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living cyclones using the &#39;</span><span class="o">+</span><span class="n">breakup</span><span class="o">+</span><span class="s1">&#39; method&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;breakup&#39;</span><span class="p">:</span>
@@ -304,10 +292,8 @@
                                     <span class="nb">int</span><span class="p">(</span><span class="n">MinTimeCY</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
                                     <span class="n">dT</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;watershed&#39;</span><span class="p">:</span>
-        <span class="n">threshold</span><span class="o">=</span><span class="mi">1</span>
         <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="mi">1000</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">Gridspacing</span><span class="p">)</span>
-        <span class="n">low_pres_an</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">z500_Anomaly</span><span class="p">)</span>
-        <span class="n">low_pres_an</span><span class="p">[</span><span class="n">cy_z500_objects</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
         <span class="n">cy_z500_objects</span> <span class="o">=</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">(</span>
                 <span class="n">z500_Anomaly</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">z500_low_anom</span><span class="o">*-</span><span class="mi">1</span><span class="p">,</span>
@@ -324,22 +310,15 @@
 
     <span class="c1"># -------------------------------------</span>
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;    track 500 hPa anticyclones&#39;</span><span class="p">)</span>
-    <span class="n">rgiObjectsUD</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">z_high</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;            &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nr_objectsUD</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; object found&#39;</span><span class="p">)</span>
-    <span class="n">acy_z500_objects</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">clean_up_objects</span><span class="p">(</span><span class="n">rgiObjectsUD</span><span class="p">,</span>
-                                <span class="n">min_tsteps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">MinTimeCY</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
-                                 <span class="n">dT</span> <span class="o">=</span> <span class="n">dT</span><span class="p">)</span>
-
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living CY objects that heve many elements&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;breakup&#39;</span><span class="p">:</span>
         <span class="n">acy_z500_objects</span><span class="p">,</span> <span class="n">object_split</span> <span class="o">=</span> <span class="n">BreakupObjects</span><span class="p">(</span><span class="n">acy_z500_objects</span><span class="p">,</span>
                                     <span class="nb">int</span><span class="p">(</span><span class="n">MinTimeCY</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
                                     <span class="n">dT</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;watershed&#39;</span><span class="p">:</span>
-        <span class="n">threshold</span><span class="o">=</span><span class="mi">1</span>
         <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="mi">1000</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">Gridspacing</span><span class="p">)</span>
-        <span class="n">high_pres_an</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">z500_Anomaly</span><span class="p">)</span>
-        <span class="n">high_pres_an</span><span class="p">[</span><span class="n">acy_z500_objects</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># high_pres_an = np.copy(z500_Anomaly)</span>
+        <span class="c1"># high_pres_an[acy_z500_objects == 0] = 0</span>
         <span class="n">acy_z500_objects</span> <span class="o">=</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">(</span>
                 <span class="n">z500_Anomaly</span><span class="p">,</span>
                 <span class="n">z500_high_anom</span><span class="p">,</span>

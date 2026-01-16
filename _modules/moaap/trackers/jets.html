@@ -115,29 +115,8 @@
 <span class="sd">    object_split : dict</span>
 <span class="sd">        History of object splitting/merging.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">uv200_smooth</span> <span class="o">=</span> <span class="n">smooth_uniform</span><span class="p">(</span><span class="n">uv200</span><span class="p">,</span>
-                             <span class="mi">1</span><span class="p">,</span>
-                             <span class="nb">int</span><span class="p">(</span><span class="mi">500</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mf">1000.</span><span class="p">)))</span>
-    <span class="n">uv200smoothAn</span> <span class="o">=</span> <span class="n">smooth_uniform</span><span class="p">(</span><span class="n">uv200</span><span class="p">,</span>
-                                 <span class="nb">int</span><span class="p">(</span><span class="mi">78</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
-                                 <span class="nb">int</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="mi">5000</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mf">1000.</span><span class="p">))))</span>
-
-    <span class="n">uv200_Anomaly</span> <span class="o">=</span> <span class="n">uv200_smooth</span> <span class="o">-</span> <span class="n">uv200smoothAn</span>
-    <span class="n">jet</span> <span class="o">=</span> <span class="n">uv200_Anomaly</span><span class="p">[:,:,:]</span> <span class="o">&gt;=</span> <span class="n">js_min_anomaly</span>
-
-
-    <span class="c1">#     Pressure_anomaly[np.isnan(Pressure_anomaly)] = 0</span>
-    <span class="c1">#     jet[:,Mask == 0] = 0</span>
-    <span class="n">rgiObj_Struct</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">3</span><span class="p">));</span> <span class="n">rgiObj_Struct</span><span class="p">[:,:,:]</span><span class="o">=</span><span class="mi">1</span>
-    <span class="n">rgiObjectsUD</span><span class="p">,</span> <span class="n">nr_objectsUD</span> <span class="o">=</span> <span class="n">ndimage</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">jet</span><span class="p">,</span> <span class="n">structure</span><span class="o">=</span><span class="n">rgiObj_Struct</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;            &#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">nr_objectsUD</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39; object found&#39;</span><span class="p">)</span>
-
-    <span class="n">jet_objects</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">clean_up_objects</span><span class="p">(</span><span class="n">rgiObjectsUD</span><span class="p">,</span>
-                                <span class="n">min_tsteps</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">MinTimeJS</span><span class="o">/</span><span class="n">dT</span><span class="p">),</span>
-                                 <span class="n">dT</span> <span class="o">=</span> <span class="n">dT</span><span class="p">)</span>
-
     
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;    track jet streams&#39;</span><span class="p">)</span>    
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living jety objects with the &#39;</span><span class="o">+</span><span class="n">breakup</span><span class="o">+</span><span class="s1">&#39; method&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">breakup</span> <span class="o">==</span> <span class="s1">&#39;breakup&#39;</span><span class="p">:</span>
         <span class="n">jet_objects</span><span class="p">,</span> <span class="n">object_split</span> <span class="o">=</span> <span class="n">BreakupObjects</span><span class="p">(</span><span class="n">jet_objects</span><span class="p">,</span>
@@ -154,12 +133,6 @@
                                     <span class="n">extend_size_ratio</span> <span class="o">=</span> <span class="mf">0.25</span>
                                     <span class="p">)</span>
         <span class="n">object_split</span> <span class="o">=</span> <span class="kc">None</span>
-
-
-<span class="c1">#     jet_objects, object_split = clean_up_objects(rgiObjectsUD,</span>
-<span class="c1">#                                 min_tsteps=int(MinTimeJS/dT),</span>
-<span class="c1">#                                 dT = dT,</span>
-<span class="c1">#                                 obj_splitmerge = object_split)</span>
     
     <span class="c1"># if connectLon == 1:</span>
     <span class="c1">#     print(&#39;        connect cyclones objects over date line&#39;)</span>
