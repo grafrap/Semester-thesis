@@ -74,7 +74,7 @@
 <span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ndimage</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.data_proc</span><span class="w"> </span><span class="kn">import</span> <span class="n">smooth_uniform</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.segmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">watershed_3d_overlap_parallel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.segmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">,</span> <span class="n">analyze_watershed_history</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.object_props</span><span class="w"> </span><span class="kn">import</span> <span class="n">clean_up_objects</span><span class="p">,</span> <span class="n">BreakupObjects</span><span class="p">,</span> <span class="n">ConnectLon_on_timestep</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.grid</span><span class="w"> </span><span class="kn">import</span> <span class="n">radialdistance</span>
 
@@ -92,6 +92,7 @@
                     <span class="n">Gridspacing</span><span class="p">,</span>
                     <span class="n">connectLon</span><span class="p">,</span>
                     <span class="n">breakup</span> <span class="o">=</span> <span class="s1">&#39;watershed&#39;</span><span class="p">,</span>
+                    <span class="n">analyze_psl_history</span> <span class="o">=</span> <span class="kc">False</span>
                     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tracks Cyclones (CY) and Anticyclones (ACY) based on Sea Level Pressure (SLP) anomalies.</span>
@@ -116,6 +117,8 @@
 <span class="sd">        1 to connect across date line.</span>
 <span class="sd">    breakup : str</span>
 <span class="sd">        Method for object separation (&#39;breakup&#39; or &#39;watershed&#39;).</span>
+<span class="sd">    analyze_psl_history : bool, optional</span>
+<span class="sd">        If True, computes watershed merge/split history. Default is False.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -220,6 +223,29 @@
                                             <span class="n">connectLon</span> <span class="o">=</span> <span class="n">connectLon</span><span class="p">,</span>
                                             <span class="n">extend_size_ratio</span> <span class="o">=</span> <span class="mf">0.15</span>
                                             <span class="p">)</span>
+    <span class="k">if</span> <span class="n">analyze_psl_history</span><span class="p">:</span>
+        <span class="n">min_dist</span><span class="o">=</span><span class="mi">8</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between high_pres_anomaly maxima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
+        <span class="n">union_array</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">histories</span> <span class="o">=</span> <span class="n">analyze_watershed_history</span><span class="p">(</span>
+            <span class="n">ACY_objects</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">,</span> <span class="s2">&quot;cy_acy_psl&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">union_array_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">union_array</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">events_clean</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;from_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;from_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;to_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;to_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">])</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span>
+        <span class="p">]</span>
+        <span class="n">histories_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">root</span><span class="p">):</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span> <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">histories</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing union array: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">union_array_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing events: </span><span class="si">{</span><span class="n">events_clean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing histories: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">histories_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">CY_objects</span><span class="p">,</span> <span class="n">ACY_objects</span></div>
 
@@ -236,6 +262,7 @@
                     <span class="n">z500_low_anom</span> <span class="o">=</span> <span class="o">-</span><span class="mi">80</span><span class="p">,</span>
                     <span class="n">z500_high_anom</span> <span class="o">=</span> <span class="mi">70</span><span class="p">,</span>
                     <span class="n">breakup</span> <span class="o">=</span> <span class="s1">&#39;breakup&#39;</span><span class="p">,</span>
+                    <span class="n">analyze_z500_history</span> <span class="o">=</span> <span class="kc">False</span>
                     <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Tracks mid-tropospheric cyclones and anticyclones based on Z500 anomalies.</span>
@@ -306,6 +333,30 @@
     <span class="k">if</span> <span class="n">connectLon</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        connect cyclones objects over date line&#39;</span><span class="p">)</span>
         <span class="n">cy_z500_objects</span> <span class="o">=</span> <span class="n">ConnectLon_on_timestep</span><span class="p">(</span><span class="n">cy_z500_objects</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">analyze_z500_history</span><span class="p">:</span>
+        <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="mi">1000</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">Gridspacing</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between z500_Anomaly minima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
+        <span class="n">union_array</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">histories</span> <span class="o">=</span> <span class="n">analyze_watershed_history</span><span class="p">(</span>
+            <span class="n">cy_z500_objects</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">,</span> <span class="s2">&quot;cy_z500&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">union_array_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">union_array</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">events_clean</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;from_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;from_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;to_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;to_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">])</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span>
+        <span class="p">]</span>
+        <span class="n">histories_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">root</span><span class="p">):</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span> <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">histories</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing union array: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">union_array_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing events: </span><span class="si">{</span><span class="n">events_clean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing histories: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">histories_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
 
     <span class="c1"># -------------------------------------</span>
@@ -331,6 +382,30 @@
     <span class="k">if</span> <span class="n">connectLon</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        connect cyclones objects over date line&#39;</span><span class="p">)</span>
         <span class="n">acy_z500_objects</span> <span class="o">=</span> <span class="n">ConnectLon_on_timestep</span><span class="p">(</span><span class="n">acy_z500_objects</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">analyze_z500_history</span><span class="p">:</span>
+        <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="mi">1000</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">Gridspacing</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between z500_Anomaly minima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
+        <span class="n">union_array</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">histories</span> <span class="o">=</span> <span class="n">analyze_watershed_history</span><span class="p">(</span>
+            <span class="n">acy_z500_objects</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">,</span> <span class="s2">&quot;acy_z500&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">union_array_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">union_array</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">events_clean</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;from_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;from_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;to_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;to_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">])</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span>
+        <span class="p">]</span>
+        <span class="n">histories_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">root</span><span class="p">):</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span> <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">histories</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing union array: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">union_array_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing events: </span><span class="si">{</span><span class="n">events_clean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing histories: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">histories_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">cy_z500_objects</span><span class="p">,</span> <span class="n">acy_z500_objects</span></div>
 

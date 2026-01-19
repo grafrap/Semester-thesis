@@ -149,16 +149,6 @@
 <span class="sd">    OutputFolder : str, default=&#39;&#39;</span>
 <span class="sd">        Path to the output directory.</span>
 
-<span class="sd">    Precipitation objects</span>
-<span class="sd">    -----------        </span>
-<span class="sd">    SmoothSigmaP : float, default=0</span>
-<span class="sd">        Gaussian σ for precipitation smoothing.</span>
-<span class="sd">    Pthreshold : float, default=2</span>
-<span class="sd">        Precipitation threshold (mm h⁻¹).</span>
-<span class="sd">    MinTimePR : int, default=4</span>
-<span class="sd">        Minimum lifetime of precipitation features (h).</span>
-<span class="sd">    MinAreaPR : float, default=5000</span>
-<span class="sd">        Minimum area of precipitation features (km²).</span>
 
 <span class="sd">    Moisture streams</span>
 <span class="sd">    -----------</span>
@@ -168,6 +158,10 @@
 <span class="sd">        Minimum area of moisture stream features (km²).</span>
 <span class="sd">    MinMSthreshold : float, default=0.11</span>
 <span class="sd">        Detection threshold for moisture streams (g·m/g·s).</span>
+<span class="sd">    breakup_ms : str, default=&#39;watershed&#39;</span>
+<span class="sd">        Method for moisture stream breakup.</span>
+<span class="sd">    analyze_ms_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for moisture streams.</span>
 
 <span class="sd">    Cyclones &amp; anticyclones</span>
 <span class="sd">    -------------------</span>
@@ -181,6 +175,8 @@
 <span class="sd">        Minimum lifetime of anticyclones (h).</span>
 <span class="sd">    MinPresAnACY : float, default=6</span>
 <span class="sd">        Pressure anomaly threshold for anticyclones (hPa).</span>
+<span class="sd">    analyze_psl_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for cyclones/anticyclones.</span>
 
 <span class="sd">    Frontal zones</span>
 <span class="sd">    -------------------</span>
@@ -199,6 +195,8 @@
 <span class="sd">        Minimum lifetime of ice‐cloud shields (h).</span>
 <span class="sd">    MinAreaC : float, default=40000</span>
 <span class="sd">        Minimum area of ice‐cloud shields (km²).</span>
+<span class="sd">    analyze_cloud_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for cloud objects.</span>
 
 <span class="sd">    Atmospheric rivers (AR)</span>
 <span class="sd">    -----------</span>
@@ -214,6 +212,8 @@
 <span class="sd">        Minimum centroid latitude for ARs (degrees N).</span>
 <span class="sd">    AR_width_lenght_ratio : float, default=2</span>
 <span class="sd">        Minimum length‐to‐width ratio for ARs.</span>
+<span class="sd">    analyze_ivt_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for ARs.</span>
 
 <span class="sd">    Tropical cyclone detection</span>
 <span class="sd">    -----------</span>
@@ -240,7 +240,7 @@
 <span class="sd">        Minimum cloud area for MCS detection (km²).</span>
 <span class="sd">    MCS_minTime : int, default=4</span>
 <span class="sd">        Minimum lifetime of MCS (h).</span>
-<span class="sd">    Analyze_history : bool, default=False</span>
+<span class="sd">    analyze_mcs_history : bool, default=False</span>
 <span class="sd">        Whether to analyze the history of MCS objects.</span>
 
 <span class="sd">    Jet streams &amp; tropical waves</span>
@@ -255,15 +255,21 @@
 <span class="sd">        Minimum lifetime of tropical waves (h).</span>
 <span class="sd">    breakup_mcs : str, default=&#39;watershed&#39;</span>
 <span class="sd">        Method for MCS breakup.</span>
+<span class="sd">    analyze_jet_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for jet streams.</span>
+<span class="sd">    analyze_twave_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for tropical waves.</span>
 
-<span class="sd">    **500 hPa cyclones/anticyclones**</span>
-
+<span class="sd">    500 hPa cyclones/anticyclones</span>
+<span class="sd">    -----------</span>
 <span class="sd">    z500_low_anom : float, default=-80</span>
 <span class="sd">        Minimum anomaly for 500 hPa cyclones (m).</span>
 <span class="sd">    z500_high_anom : float, default=70</span>
 <span class="sd">        Minimum anomaly for 500 hPa anticyclones (m).</span>
 <span class="sd">    breakup_zcy : str, default=&#39;watershed&#39;</span>
 <span class="sd">        Method for 500 hPa cyclone/anticyclone breakup.</span>
+<span class="sd">    analyze_z500_history : bool, default=False</span>
+<span class="sd">        If True, computes watershed merge/split history for 500 hPa cyclones/anticyclones.</span>
 
 <span class="sd">    Equatorial waves</span>
 <span class="sd">    -----------</span>
@@ -494,7 +500,9 @@
                                       <span class="n">dT</span><span class="p">,</span>
                                       <span class="n">Gridspacing</span><span class="p">,</span>
                                       <span class="n">connectLon</span><span class="p">,</span>
-                                      <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_jet&quot;</span><span class="p">])</span>
+                                      <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_jet&quot;</span><span class="p">],</span>
+                                      <span class="n">analyze_jet_history</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_jet_history&quot;</span><span class="p">]</span>
+                                      <span class="p">)</span>
         <span class="n">jet_objects_characteristics</span> <span class="o">=</span> <span class="n">calc_object_characteristics</span><span class="p">(</span><span class="n">jet_objects</span><span class="p">,</span> <span class="c1"># feature object file</span>
                                      <span class="n">uv200</span><span class="p">,</span>         <span class="c1"># original file used for feature detection</span>
                                      <span class="n">params</span><span class="p">[</span><span class="s2">&quot;OutputFolder&quot;</span><span class="p">]</span><span class="o">+</span><span class="s1">&#39;jet_&#39;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">StartDay</span><span class="o">.</span><span class="n">year</span><span class="p">)</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">StartDay</span><span class="o">.</span><span class="n">month</span><span class="p">)</span><span class="o">.</span><span class="n">zfill</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">+</span><span class="s1">&#39;_&#39;</span><span class="o">+</span><span class="n">SetupString</span><span class="p">,</span>
@@ -524,7 +532,8 @@
                        <span class="n">igw_th</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;igw_th&quot;</span><span class="p">],</span>  <span class="c1"># threshold for inertia gravity waves</span>
                        <span class="n">kel_th</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;kel_th&quot;</span><span class="p">],</span>  <span class="c1"># threshold for Kelvin waves</span>
                        <span class="n">eig0_th</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;eig0_th&quot;</span><span class="p">],</span> <span class="c1"># threshold for n&gt;=1 Inertio Gravirt Wave</span>
-                       <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_tw&quot;</span><span class="p">]</span>
+                       <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_tw&quot;</span><span class="p">],</span>
+                       <span class="n">analyze_twave_history</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_twave_history&quot;</span><span class="p">]</span>
                         <span class="p">)</span>
         <span class="n">end</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="n">timer</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">)</span>
@@ -595,7 +604,9 @@
                                         <span class="n">dT</span><span class="p">,</span>
                                         <span class="n">connectLon</span><span class="p">,</span>
                                         <span class="n">Gridspacing</span><span class="p">,</span>
-                                        <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_ivt&quot;</span><span class="p">])</span>
+                                        <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_ivt&quot;</span><span class="p">],</span>
+                                        <span class="n">analyze_ms_history</span><span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_ms_history&quot;</span><span class="p">]</span>
+                                        <span class="p">)</span>
         
         <span class="n">grMSs</span> <span class="o">=</span> <span class="n">calc_object_characteristics</span><span class="p">(</span><span class="n">MS_objects</span><span class="p">,</span> <span class="c1"># feature object file</span>
                                  <span class="n">VapTrans</span><span class="p">,</span>         <span class="c1"># original file used for feature detection</span>
@@ -622,7 +633,8 @@
                                     <span class="n">dT</span><span class="p">,</span>
                                     <span class="n">Gridspacing</span><span class="p">,</span>
                                     <span class="n">connectLon</span><span class="p">,</span>
-                                    <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_ivt&quot;</span><span class="p">])</span>
+                                    <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_ivt&quot;</span><span class="p">],</span>
+                                    <span class="n">analyze_ivt_history</span><span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_ivt_history&quot;</span><span class="p">])</span>
 
         <span class="n">grIVTs</span> <span class="o">=</span> <span class="n">calc_object_characteristics</span><span class="p">(</span><span class="n">IVT_objects</span><span class="p">,</span> <span class="c1"># feature object file</span>
                                      <span class="n">IVT</span><span class="p">,</span>         <span class="c1"># original file used for feature detection</span>
@@ -704,6 +716,7 @@
                                                     <span class="n">Gridspacing</span><span class="p">,</span>
                                                     <span class="n">connectLon</span><span class="p">,</span>
                                                     <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_cy&quot;</span><span class="p">],</span>
+                                                    <span class="n">analyze_psl_history</span><span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_psl_history&quot;</span><span class="p">]</span>
                                                     <span class="p">)</span>
 
         <span class="n">grCyclonesPT</span> <span class="o">=</span> <span class="n">calc_object_characteristics</span><span class="p">(</span><span class="n">CY_objects</span><span class="p">,</span> <span class="c1"># feature object file</span>
@@ -741,6 +754,7 @@
                                             <span class="n">z500_low_anom</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;z500_low_anom&quot;</span><span class="p">],</span>
                                             <span class="n">z500_high_anom</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;z500_high_anom&quot;</span><span class="p">],</span>
                                             <span class="n">breakup</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;breakup_zcy&quot;</span><span class="p">],</span>
+                                            <span class="n">analyze_z500_history</span><span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_z500_history&quot;</span><span class="p">]</span>
                                             <span class="p">)</span>
         
         <span class="n">cy_z500_objects_characteristics</span> <span class="o">=</span> <span class="n">calc_object_characteristics</span><span class="p">(</span><span class="n">cy_z500_objects</span><span class="p">,</span> <span class="c1"># feature object file</span>
@@ -851,7 +865,8 @@
                         <span class="n">tb_threshold</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;Cthreshold&quot;</span><span class="p">],</span>
                         <span class="n">tb_overshoot</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;cloud_overshoot&quot;</span><span class="p">],</span>
                         <span class="n">erosion_disk</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
-                        <span class="n">min_dist</span> <span class="o">=</span> <span class="mi">8</span>
+                        <span class="n">min_dist</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+                        <span class="n">analyze_cloud_history</span><span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="s2">&quot;analyze_cloud_history&quot;</span><span class="p">]</span>
                         <span class="p">)</span>
 
         <span class="n">grclouds_Tb</span> <span class="o">=</span> <span class="n">calc_object_characteristics</span><span class="p">(</span>

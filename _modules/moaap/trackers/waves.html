@@ -75,7 +75,7 @@
 <span class="kn">from</span><span class="w"> </span><span class="nn">scipy</span><span class="w"> </span><span class="kn">import</span> <span class="n">fftpack</span><span class="p">,</span> <span class="n">ndimage</span><span class="p">,</span> <span class="n">signal</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.constants</span><span class="w"> </span><span class="kn">import</span> <span class="n">g</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">pi</span><span class="p">,</span> <span class="n">NA</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.data_proc</span><span class="w"> </span><span class="kn">import</span> <span class="n">tukey_latitude_mask</span><span class="p">,</span> <span class="n">temporal_tukey_window</span><span class="p">,</span> <span class="n">interpolate_temporal</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.segmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">watershed_3d_overlap_parallel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.segmentation</span><span class="w"> </span><span class="kn">import</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">,</span> <span class="n">analyze_watershed_history</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">moaap.utils.object_props</span><span class="w"> </span><span class="kn">import</span> <span class="n">clean_up_objects</span><span class="p">,</span> <span class="n">BreakupObjects</span><span class="p">,</span> <span class="n">ConnectLon_on_timestep</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">gc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
@@ -93,6 +93,7 @@
                    <span class="n">kel_th</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>  
                    <span class="n">eig0_th</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> 
                    <span class="n">breakup</span> <span class="o">=</span> <span class="s1">&#39;watershed&#39;</span><span class="p">,</span>
+                   <span class="n">analyze_twave_history</span> <span class="o">=</span> <span class="kc">False</span>
                    <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Identifies and tracks tropical waves using wavenumber-frequency filtering </span>
@@ -111,6 +112,8 @@
 <span class="sd">        Inertia Gravity, Kelvin, and Eastward Inertia Gravity waves respectively.</span>
 <span class="sd">    breakup : str</span>
 <span class="sd">        Method to handle merging objects (&#39;breakup&#39; or &#39;watershed&#39;).</span>
+<span class="sd">    analyze_twave_history : bool, optional</span>
+<span class="sd">        If True, computes watershed merge/split history.</span>
 
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
@@ -209,6 +212,31 @@
             <span class="n">kelvin_objects</span> <span class="o">=</span> <span class="n">wave_objects</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">wa</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
             <span class="n">eig0_objects</span> <span class="o">=</span> <span class="n">wave_objects</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">analyze_twave_history</span><span class="p">:</span>
+            <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">((</span><span class="mi">1000</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="n">Gridspacing</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between </span><span class="si">{</span><span class="n">wave_names</span><span class="p">[</span><span class="n">wa</span><span class="p">]</span><span class="si">}</span><span class="s2"> maxima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
+            <span class="n">union_array</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">histories</span> <span class="o">=</span> <span class="n">analyze_watershed_history</span><span class="p">(</span>
+                <span class="n">wave_objects</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">,</span> <span class="n">wave_names</span><span class="p">[</span><span class="n">wa</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+            <span class="p">)</span>
+
+            <span class="n">union_array_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">union_array</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">events_clean</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">{</span>
+                <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;from_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;from_label&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;to_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;to_label&#39;</span><span class="p">]),</span>
+                <span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">])</span>
+            <span class="p">}</span>
+            <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span>
+            <span class="p">]</span>
+            <span class="n">histories_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">root</span><span class="p">):</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span> <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">histories</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing union array: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">union_array_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing events: </span><span class="si">{</span><span class="n">events_clean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing histories: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">histories_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
 
         <span class="k">del</span> <span class="n">wave</span>
         <span class="k">del</span> <span class="n">wave_objects</span>

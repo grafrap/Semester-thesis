@@ -174,56 +174,53 @@
 <li><p><strong>OutputFolder</strong> (<em>str</em><em>, </em><em>default=''</em>) – Path to the output directory.</p></li>
 </ul>
 </dd>
-<dt class="field-odd">Precipitation objects<span class="colon">:</span></dt>
+<dt class="field-odd">Moisture streams<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>SmoothSigmaP</strong> (<em>float, default=0</em>) – Gaussian σ for precipitation smoothing.</p></li>
-<li><p><strong>Pthreshold</strong> (<em>float, default=2</em>) – Precipitation threshold (mm h⁻¹).</p></li>
-<li><p><strong>MinTimePR</strong> (<em>int, default=4</em>) – Minimum lifetime of precipitation features (h).</p></li>
-<li><p><strong>MinAreaPR</strong> (<em>float, default=5000</em>) – Minimum area of precipitation features (km²).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Moisture streams<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
 <li><p><strong>MinTimeMS</strong> (<em>int, default=9</em>) – Minimum lifetime of moisture stream features (h).</p></li>
 <li><p><strong>MinAreaMS</strong> (<em>float, default=100000</em>) – Minimum area of moisture stream features (km²).</p></li>
 <li><p><strong>MinMSthreshold</strong> (<em>float, default=0.11</em>) – Detection threshold for moisture streams (g·m/g·s).</p></li>
+<li><p><strong>breakup_ms</strong> (<em>str, default=’watershed’</em>) – Method for moisture stream breakup.</p></li>
+<li><p><strong>analyze_ms_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for moisture streams.</p></li>
 </ul>
 </dd>
-<dt class="field-odd">Cyclones &amp; anticyclones<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-even">Cyclones &amp; anticyclones<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>MinTimeCY</strong> (<em>int, default=12</em>) – Minimum lifetime of cyclones (h).</p></li>
 <li><p><strong>MaxPresAnCY</strong> (<em>float, default=-8</em>) – Pressure anomaly threshold for cyclones (hPa).</p></li>
 <li><p><strong>breakup_cy</strong> (<em>str, default=’watershed’</em>) – Method for cyclone breakup.</p></li>
 <li><p><strong>MinTimeACY</strong> (<em>int, default=12</em>) – Minimum lifetime of anticyclones (h).</p></li>
 <li><p><strong>MinPresAnACY</strong> (<em>float, default=6</em>) – Pressure anomaly threshold for anticyclones (hPa).</p></li>
+<li><p><strong>analyze_psl_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for cyclones/anticyclones.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Frontal zones<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
+<dt class="field-odd">Frontal zones<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
 <li><p><strong>MinAreaFR</strong> (<em>float, default=50000</em>) – Minimum area of frontal zones (km²).</p></li>
 <li><p><strong>front_treshold</strong> (<em>float, default=1</em>) – Threshold for masking frontal zones.</p></li>
 </ul>
 </dd>
-<dt class="field-odd">Cloud tracking<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-even">Cloud tracking<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>SmoothSigmaC</strong> (<em>float, default=0</em>) – Gaussian σ for cloud‐shield smoothing.</p></li>
 <li><p><strong>Cthreshold</strong> (<em>float, default=241</em>) – Brightness temperature threshold for ice‐cloud shields (K).</p></li>
 <li><p><strong>MinTimeC</strong> (<em>int, default=4</em>) – Minimum lifetime of ice‐cloud shields (h).</p></li>
 <li><p><strong>MinAreaC</strong> (<em>float, default=40000</em>) – Minimum area of ice‐cloud shields (km²).</p></li>
+<li><p><strong>analyze_cloud_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for cloud objects.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Atmospheric rivers (AR)<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
+<dt class="field-odd">Atmospheric rivers (AR)<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
 <li><p><strong>IVTtrheshold</strong> (<em>float, default=500</em>) – Integrated vapor transport threshold for AR detection (kg m⁻¹ s⁻¹).</p></li>
 <li><p><strong>MinTimeIVT</strong> (<em>int, default=12</em>) – Minimum lifetime of ARs (h).</p></li>
 <li><p><strong>breakup_ivt</strong> (<em>str, default=’watershed’</em>) – Method for AR breakup.</p></li>
 <li><p><strong>AR_MinLen</strong> (<em>float, default=2000</em>) – Minimum length of an AR (km).</p></li>
 <li><p><strong>AR_Lat</strong> (<em>float, default=20</em>) – Minimum centroid latitude for ARs (degrees N).</p></li>
 <li><p><strong>AR_width_lenght_ratio</strong> (<em>float, default=2</em>) – Minimum length‐to‐width ratio for ARs.</p></li>
+<li><p><strong>analyze_ivt_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for ARs.</p></li>
 </ul>
 </dd>
-<dt class="field-odd">Tropical cyclone detection<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-even">Tropical cyclone detection<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>TC_Pmin</strong> (<em>float, default=995</em>) – Minimum central pressure for TC detection (hPa).</p></li>
 <li><p><strong>TC_lat_genesis</strong> (<em>float, default=35</em>) – Maximum latitude for TC genesis (degrees).</p></li>
 <li><p><strong>TC_lat_max</strong> (<em>float, default=60</em>) – Maximum latitude for TC existence (degrees).</p></li>
@@ -231,27 +228,33 @@
 <li><p><strong>TC_T850min</strong> (<em>float, default=285</em>) – Minimum core temperature at 850 hPa for TCs (K).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Mesoscale convective systems (MCS)<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
+<dt class="field-odd">Mesoscale convective systems (MCS)<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
 <li><p><strong>MCS_Minsize</strong> (<em>float, default=5000</em>) – Minimum precipitation area size for MCS (km²).</p></li>
 <li><p><strong>MCS_minPR</strong> (<em>float, default=15</em>) – Precipitation threshold for MCS detection (mm h⁻¹).</p></li>
 <li><p><strong>CL_MaxT</strong> (<em>float, default=215</em>) – Maximum brightness temperature in ice shield for MCS (K).</p></li>
 <li><p><strong>CL_Area</strong> (<em>float, default=40000</em>) – Minimum cloud area for MCS detection (km²).</p></li>
 <li><p><strong>MCS_minTime</strong> (<em>int, default=4</em>) – Minimum lifetime of MCS (h).</p></li>
-<li><p><strong>Analyze_history</strong> (<em>bool, default=False</em>) – Whether to analyze the history of MCS objects.</p></li>
+<li><p><strong>analyze_mcs_history</strong> (<em>bool, default=False</em>) – Whether to analyze the history of MCS objects.</p></li>
 </ul>
 </dd>
-<dt class="field-odd">Jet streams &amp; tropical waves<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
+<dt class="field-even">Jet streams &amp; tropical waves<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
 <li><p><strong>js_min_anomaly</strong> (<em>float, default=37</em>) – Minimum jet‐stream anomaly (m/s).</p></li>
 <li><p><strong>MinTimeJS</strong> (<em>int, default=24</em>) – Minimum lifetime of jet streams (h).</p></li>
 <li><p><strong>breakup_jet</strong> (<em>str, default=’watershed’</em>) – Method for jet‐stream breakup.</p></li>
 <li><p><strong>tropwave_minTime</strong> (<em>int, default=48</em>) – Minimum lifetime of tropical waves (h).</p></li>
 <li><p><strong>breakup_mcs</strong> (<em>str, default=’watershed’</em>) – Method for MCS breakup.</p></li>
-<li><p><strong>**500 hPa cyclones/anticyclones**</strong></p></li>
+<li><p><strong>analyze_jet_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for jet streams.</p></li>
+<li><p><strong>analyze_twave_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for tropical waves.</p></li>
+</ul>
+</dd>
+<dt class="field-odd">500 hPa cyclones/anticyclones<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
 <li><p><strong>z500_low_anom</strong> (<em>float, default=-80</em>) – Minimum anomaly for 500 hPa cyclones (m).</p></li>
 <li><p><strong>z500_high_anom</strong> (<em>float, default=70</em>) – Minimum anomaly for 500 hPa anticyclones (m).</p></li>
 <li><p><strong>breakup_zcy</strong> (<em>str, default=’watershed’</em>) – Method for 500 hPa cyclone/anticyclone breakup.</p></li>
+<li><p><strong>analyze_z500_history</strong> (<em>bool, default=False</em>) – If True, computes watershed merge/split history for 500 hPa cyclones/anticyclones.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Equatorial waves<span class="colon">:</span></dt>
@@ -658,17 +661,20 @@ Assumes each ‘label’ (int) is a unique object ID.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="moaap.utils.segmentation.analyze_watershed_history">
-<span class="sig-prename descclassname"><span class="pre">moaap.utils.segmentation.</span></span><span class="sig-name descname"><span class="pre">analyze_watershed_history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">watershed_results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/utils/segmentation.html#analyze_watershed_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.utils.segmentation.analyze_watershed_history" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.utils.segmentation.</span></span><span class="sig-name descname"><span class="pre">analyze_watershed_history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">watershed_results</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">object_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/utils/segmentation.html#analyze_watershed_history"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.utils.segmentation.analyze_watershed_history" title="Link to this definition"></a></dt>
 <dd><p>Analyze the history of watershed objects over time.
 The output is a union of all objects which merged or split over time,
 along with a list of events (merges and splits) that occurred and the history array
 (dict of sets), where two labels are in one set if they are connected via merges/splits.
-This is done via Euler-timestepping and comparing the overlap of objects</p>
+This is done via Euler-timestepping and comparing the overlap of objects.
+This function also creates a plot of the history of all objects showing merges and splits of
+at most 40 objects (for better readability).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>watershed_results</strong> (<em>np.ndarray</em>) – 3D array of watershed labels over time, shape (T, H, W).</p></li>
 <li><p><strong>min_dist</strong> (<em>float</em>) – Minimum distance threshold to consider two objects as related (for merges/splits).</p></li>
+<li><p><strong>object_type</strong> (<em>str</em>) – Type of object being analyzed (e.g., “mcs”, “cloud”).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -811,7 +817,7 @@ This has to be big for large objects (e.g., ARs) and can be smaller for e.g., MC
 <span id="trackers"></span><h2>Trackers<a class="headerlink" href="#module-moaap.trackers.atmospheric_rivers" title="Link to this heading"></a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="moaap.trackers.atmospheric_rivers.ar_850hpa_tracking">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.atmospheric_rivers.</span></span><span class="sig-name descname"><span class="pre">ar_850hpa_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VapTrans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinMSthreshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeMS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinAreaMS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/atmospheric_rivers.html#ar_850hpa_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.atmospheric_rivers.ar_850hpa_tracking" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.atmospheric_rivers.</span></span><span class="sig-name descname"><span class="pre">ar_850hpa_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">VapTrans</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinMSthreshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeMS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinAreaMS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_ms_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/atmospheric_rivers.html#ar_850hpa_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.atmospheric_rivers.ar_850hpa_tracking" title="Link to this definition"></a></dt>
 <dd><p>Tracks Moisture Streams (MS) based on 850 hPa moisture flux.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -823,7 +829,9 @@ This has to be big for large objects (e.g., ARs) and can be smaller for e.g., MC
 <li><p><strong>Area</strong> (<em>np.ndarray</em>) – Grid cell area array.</p></li>
 <li><p><strong>dT</strong> (<em>int</em>) – Time step (hours).</p></li>
 <li><p><strong>connectLon</strong> (<em>int</em>) – 1 to connect across date line.</p></li>
-<li><p><strong>breakup</strong> (<em>str</em>) – Method for object separation.</p></li>
+<li><p><strong>Gridspacing</strong> (<em>float</em>) – Grid spacing (m).</p></li>
+<li><p><strong>breakup</strong> (<em>str</em><em>, </em><em>optional</em>) – Method for object separation. Options: ‘breakup’ or ‘watershed’. Default is ‘watershed’.</p></li>
+<li><p><strong>analyze_ms_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, computes watershed merge/split history.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -862,7 +870,7 @@ Length, and Length/Width ratio).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="moaap.trackers.atmospheric_rivers.ar_ivt_tracking">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.atmospheric_rivers.</span></span><span class="sig-name descname"><span class="pre">ar_ivt_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IVT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IVTtrheshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeIVT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/atmospheric_rivers.html#ar_ivt_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.atmospheric_rivers.ar_ivt_tracking" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.atmospheric_rivers.</span></span><span class="sig-name descname"><span class="pre">ar_ivt_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">IVT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">IVTtrheshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeIVT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_ivt_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/atmospheric_rivers.html#ar_ivt_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.atmospheric_rivers.ar_ivt_tracking" title="Link to this definition"></a></dt>
 <dd><p>Tracks Atmospheric Rivers (ARs) based on Integrated Vapor Transport (IVT).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -873,7 +881,8 @@ Length, and Length/Width ratio).</p>
 <li><p><strong>dT</strong> (<em>int</em>) – Data timestep (hours).</p></li>
 <li><p><strong>Gridspacing</strong> (<em>float</em>) – Grid spacing in meters.</p></li>
 <li><p><strong>connectLon</strong> (<em>int</em>) – 1 to connect objects across the date line, 0 otherwise.</p></li>
-<li><p><strong>breakup</strong> (<em>str</em>) – Method to handle merging objects (‘breakup’ or ‘watershed’).</p></li>
+<li><p><strong>breakup</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to handle merging objects (‘breakup’ or ‘watershed’). Default is ‘watershed’.</p></li>
+<li><p><strong>analyze_ivt_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, computes watershed merge/split history. Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -887,22 +896,26 @@ Length, and Length/Width ratio).</p>
 
 <dl class="py function" id="module-moaap.trackers.clouds">
 <dt class="sig sig-object py" id="moaap.trackers.clouds.cloud_tracking">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.clouds.</span></span><span class="sig-name descname"><span class="pre">cloud_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tb_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">241</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tb_overshoot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">235</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">erosion_disk</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/clouds.html#cloud_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.clouds.cloud_tracking" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.clouds.</span></span><span class="sig-name descname"><span class="pre">cloud_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tb_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">241</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tb_overshoot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">235</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">erosion_disk</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_cloud_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/clouds.html#cloud_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.clouds.cloud_tracking" title="Link to this definition"></a></dt>
 <dd><p>Tracks clouds from hourly or sub-hourly brightness temperature data.
 Calculates cloud statistics, including their precipitation (pr) properties if pr is provided.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>(</strong><strong>float</strong><strong>)</strong> (<em>Gridspacing</em>)</p></li>
+<li><p><strong>(</strong><strong>float</strong><strong>)</strong></p></li>
 <li><p><strong>(</strong><strong>bol</strong><strong>)</strong> (<em>connectLon</em>)</p></li>
 <li><p><strong>(</strong><strong>float</strong><strong>)</strong></p></li>
+<li><p><strong>(</strong><strong>int</strong><strong>)</strong> (<em>dT</em>)</p></li>
 <li><p><strong>(</strong><strong>float</strong> (<em>erosion_disk</em>)</p></li>
-<li><p><strong>optional</strong><strong>)</strong> (<em>minimum distance in grid cells between two tb minima</em><em> (</em><em>overshoots</em><em>)</em><em>. The default is &quot;8&quot;.</em>)</p></li>
+<li><p><strong>optional</strong><strong>)</strong> (<em>If True</em><em>, </em><em>computes watershed merge/split history. Default is False.</em>)</p></li>
 <li><p><strong>(</strong><strong>float</strong></p></li>
 <li><p><strong>optional</strong><strong>)</strong></p></li>
 <li><p><strong>(</strong><strong>float</strong></p></li>
 <li><p><strong>optional</strong><strong>)</strong></p></li>
 <li><p><strong>(</strong><strong>int</strong> (<em>min_dist</em>)</p></li>
+<li><p><strong>optional</strong><strong>)</strong></p></li>
+<li><p><strong>(</strong><strong>bool</strong> (<em>analyze_cloud_history</em>)</p></li>
 <li><p><strong>optional</strong><strong>)</strong></p></li>
 </ul>
 </dd>
@@ -982,7 +995,7 @@ and frontal separation.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="moaap.trackers.cyclones.cy_acy_psl_tracking">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.cyclones.</span></span><span class="sig-name descname"><span class="pre">cy_acy_psl_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MaxPresAnCY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeCY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinPresAnACY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeACY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/cyclones.html#cy_acy_psl_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.cyclones.cy_acy_psl_tracking" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.cyclones.</span></span><span class="sig-name descname"><span class="pre">cy_acy_psl_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">slp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MaxPresAnCY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeCY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinPresAnACY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeACY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_psl_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/cyclones.html#cy_acy_psl_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.cyclones.cy_acy_psl_tracking" title="Link to this definition"></a></dt>
 <dd><p>Tracks Cyclones (CY) and Anticyclones (ACY) based on Sea Level Pressure (SLP) anomalies.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -996,6 +1009,7 @@ and frontal separation.</p>
 <li><p><strong>Gridspacing</strong> (<em>float</em>) – Average grid spacing (m).</p></li>
 <li><p><strong>connectLon</strong> (<em>int</em>) – 1 to connect across date line.</p></li>
 <li><p><strong>breakup</strong> (<em>str</em>) – Method for object separation (‘breakup’ or ‘watershed’).</p></li>
+<li><p><strong>analyze_psl_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, computes watershed merge/split history. Default is False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1010,7 +1024,7 @@ and frontal separation.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="moaap.trackers.cyclones.cy_acy_z500_tracking">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.cyclones.</span></span><span class="sig-name descname"><span class="pre">cy_acy_z500_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeCY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z500_low_anom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z500_high_anom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">70</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'breakup'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/cyclones.html#cy_acy_z500_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.cyclones.cy_acy_z500_tracking" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.cyclones.</span></span><span class="sig-name descname"><span class="pre">cy_acy_z500_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">z500</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeCY</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z500_low_anom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z500_high_anom</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">70</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'breakup'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_z500_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/cyclones.html#cy_acy_z500_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.cyclones.cy_acy_z500_tracking" title="Link to this definition"></a></dt>
 <dd><p>Tracks mid-tropospheric cyclones and anticyclones based on Z500 anomalies.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1059,7 +1073,7 @@ and frontal separation.</p>
 
 <dl class="py function" id="module-moaap.trackers.jets">
 <dt class="sig sig-object py" id="moaap.trackers.jets.jetstream_tracking">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.jets.</span></span><span class="sig-name descname"><span class="pre">jetstream_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uv200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">js_min_anomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeJS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'breakup'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/jets.html#jetstream_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.jets.jetstream_tracking" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.jets.</span></span><span class="sig-name descname"><span class="pre">jetstream_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uv200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">js_min_anomaly</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MinTimeJS</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'breakup'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_jet_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/jets.html#jetstream_tracking"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.jets.jetstream_tracking" title="Link to this definition"></a></dt>
 <dd><p>Identifies and tracks Jet Stream objects based on 200hPa wind speed anomalies.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1070,7 +1084,8 @@ and frontal separation.</p>
 <li><p><strong>dT</strong> (<em>int</em>) – Time step (hours).</p></li>
 <li><p><strong>Gridspacing</strong> (<em>float</em>) – Grid spacing (m).</p></li>
 <li><p><strong>connectLon</strong> (<em>int</em>) – 1 to connect across the date line.</p></li>
-<li><p><strong>breakup</strong> (<em>str</em>) – Method to split merged objects (‘breakup’ or ‘watershed’).</p></li>
+<li><p><strong>breakup</strong> (<em>str</em><em>, </em><em>optional</em>) – Method to split merged objects (‘breakup’ or ‘watershed’).</p></li>
+<li><p><strong>analyze_jet_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, computes watershed merge/split history.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1275,7 +1290,7 @@ Checks for warm core, genesis latitude, low pressure, and wind structure.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="moaap.trackers.waves.track_tropwaves_tb">
-<span class="sig-prename descclassname"><span class="pre">moaap.trackers.waves.</span></span><span class="sig-name descname"><span class="pre">track_tropwaves_tb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">er_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mrg_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">igw_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kel_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eig0_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/waves.html#track_tropwaves_tb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.waves.track_tropwaves_tb" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">moaap.trackers.waves.</span></span><span class="sig-name descname"><span class="pre">track_tropwaves_tb</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tb</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Lat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">connectLon</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dT</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Gridspacing</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">er_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mrg_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.05</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">igw_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kel_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eig0_th</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">breakup</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'watershed'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">analyze_twave_history</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/moaap/trackers/waves.html#track_tropwaves_tb"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#moaap.trackers.waves.track_tropwaves_tb" title="Link to this definition"></a></dt>
 <dd><p>Identifies and tracks tropical waves using wavenumber-frequency filtering
 (Wheeler &amp; Kiladis method) applied to precipitation data.</p>
 <dl class="field-list simple">
@@ -1295,6 +1310,7 @@ Inertia Gravity, Kelvin, and Eastward Inertia Gravity waves respectively.</p></l
 <li><p><strong>eig0_th</strong> (<em>float</em>) – Amplitude thresholds for identifying Equatorial Rossby, Mixed Rossby Gravity,
 Inertia Gravity, Kelvin, and Eastward Inertia Gravity waves respectively.</p></li>
 <li><p><strong>breakup</strong> (<em>str</em>) – Method to handle merging objects (‘breakup’ or ‘watershed’).</p></li>
+<li><p><strong>analyze_twave_history</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, computes watershed merge/split history.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

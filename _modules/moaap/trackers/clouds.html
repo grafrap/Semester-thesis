@@ -257,7 +257,7 @@
         <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">(((</span><span class="n">CL_Area</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mi">1000</span><span class="p">))</span><span class="o">*</span><span class="mi">2</span>
         <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between TB minima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
         <span class="n">union_array</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">histories</span> <span class="o">=</span> <span class="n">analyze_watershed_history</span><span class="p">(</span>
-            <span class="n">MCS_objects_Tb</span><span class="p">,</span> <span class="n">min_dist</span>
+            <span class="n">MCS_objects_Tb</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">,</span> <span class="s2">&quot;mcs&quot;</span>
         <span class="p">)</span>
 
         <span class="n">union_array_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">union_array</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -296,7 +296,8 @@
     <span class="n">tb_threshold</span> <span class="o">=</span> <span class="mi">241</span><span class="p">,</span>
     <span class="n">tb_overshoot</span> <span class="o">=</span> <span class="mi">235</span><span class="p">,</span>
     <span class="n">erosion_disk</span> <span class="o">=</span> <span class="mf">1.5</span><span class="p">,</span>
-    <span class="n">min_dist</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">min_dist</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">analyze_cloud_history</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">):</span>
 <span class="w">    </span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -306,13 +307,15 @@
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">        tb (float): brightness temperature of dimension [time,lat,lon]</span>
+<span class="sd">        pr (float): precipitation rate of dimension [time,lat,lon]</span>
 <span class="sd">        connectLon (bol): 1 means that clouds should be connected accross date line</span>
 <span class="sd">        Gridspacing (float): average horizontal grid spacing in [m]</span>
+<span class="sd">        dT (int): time step of data in hours</span>
 <span class="sd">        tb_threshold (float, optional): tb threshold to define cloud mask. Default is &quot;241&quot;.</span>
 <span class="sd">        tb_overshoot (float, optional): tb threshold to find local minima for watershedding. Default is &quot;235&quot;.</span>
 <span class="sd">        erosion_disk (float, optional): reduction of next timestep mask for temporal connection of features. Larger values result in more erosion and can remove smaller clouds. The default is &quot;0.15&quot;.</span>
 <span class="sd">        min_dist (int, optional): minimum distance in grid cells between two tb minima (overshoots). The default is &quot;8&quot;.</span>
-
+<span class="sd">        analyze_cloud_history (bool, optional): If True, computes watershed merge/split history. Default is False.</span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">        cloud_objects (np.ndarray): labeled cloud objects of dimension [time,lat,lon]</span>
@@ -324,6 +327,7 @@
     <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;        break up long living cloud shield objects with wathershedding&#39;</span><span class="p">)</span>
     
     <span class="n">min_dist</span><span class="o">=</span><span class="nb">int</span><span class="p">(((</span><span class="n">CL_Area</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">Gridspacing</span><span class="o">/</span><span class="mi">1000</span><span class="p">))</span><span class="o">*</span><span class="mi">2</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between TB minima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
 
     <span class="n">cloud_objects</span> <span class="o">=</span> <span class="n">watershed_3d_overlap_parallel</span><span class="p">(</span>
             <span class="n">tb</span> <span class="o">*</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
@@ -351,6 +355,30 @@
         <span class="n">pr_act</span><span class="p">[</span><span class="o">~</span><span class="n">pr_object_act</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span>
         <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">nanmax</span><span class="p">(</span><span class="n">pr_act</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">min_pr</span><span class="p">:</span>
             <span class="n">cloud_objects</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">iobj</span><span class="p">]][</span><span class="n">cloud_objects</span><span class="p">[</span><span class="n">object_indices</span><span class="p">[</span><span class="n">iobj</span><span class="p">]]</span> <span class="o">==</span> <span class="n">iobj</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">if</span> <span class="n">analyze_cloud_history</span><span class="p">:</span>
+        <span class="n">min_dist</span><span class="o">=</span><span class="mi">8</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Minimum distance between TB minima for watershed analysis: </span><span class="si">{</span><span class="n">min_dist</span><span class="si">}</span><span class="s2"> grid cells&quot;</span><span class="p">)</span>
+        <span class="n">union_array</span><span class="p">,</span> <span class="n">events</span><span class="p">,</span> <span class="n">histories</span> <span class="o">=</span> <span class="n">analyze_watershed_history</span><span class="p">(</span>
+            <span class="n">cloud_objects</span><span class="p">,</span> <span class="n">min_dist</span><span class="p">,</span> <span class="s2">&quot;cloud&quot;</span>
+        <span class="p">)</span>
+
+        <span class="n">union_array_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">union_array</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+        <span class="n">events_clean</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s1">&#39;type&#39;</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;time&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;time&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;from_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;from_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;to_label&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;to_label&#39;</span><span class="p">]),</span>
+            <span class="s1">&#39;distance&#39;</span><span class="p">:</span> <span class="nb">float</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="s1">&#39;distance&#39;</span><span class="p">])</span>
+        <span class="p">}</span>
+        <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span>
+        <span class="p">]</span>
+        <span class="n">histories_clean</span> <span class="o">=</span> <span class="p">{</span><span class="nb">int</span><span class="p">(</span><span class="n">root</span><span class="p">):</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">label</span><span class="p">)</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">labels</span><span class="p">]</span> <span class="k">for</span> <span class="n">root</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">histories</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing union array: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">union_array_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing events: </span><span class="si">{</span><span class="n">events_clean</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;    Printing histories: </span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">histories_clean</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">cloud_objects</span></div>
 
