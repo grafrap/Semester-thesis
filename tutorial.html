@@ -233,7 +233,10 @@ The provided variables allow tracking the following phenomena
 ======&gt; &#39;check if Tb objects qualify as MCS (or selected storm type)
         track  clouds
         break up long living cloud shield objects with watershed that have many elements
-    Processing 4 chunks with 0.01 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.01 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
 </pre></div></div>
@@ -243,7 +246,7 @@ The provided variables allow tracking the following phenomena
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-4284it [00:00, 7620.23it/s]
+4284it [00:00, 8639.18it/s]
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -253,11 +256,15 @@ The provided variables allow tracking the following phenomena
 <div class="highlight"><pre>
             Loop over 4284 objects
             Loop over 100 objects
-        00:00:09.49
+        00:00:04.44
 ======&gt; &#39;track high clouds in Tb field by excluding MCS objects
         track  clouds
         break up long living cloud shield objects with wathershedding
-    Processing 4 chunks with 0.02 GB halo buffer...
+    Minimum distance between TB minima for watershed analysis: 20 grid cells
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.02 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
         make sure that each object has at least one grid cell with more than min_pr threshold of precipitation
@@ -268,7 +275,7 @@ The provided variables allow tracking the following phenomena
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-878it [00:00, 10918.62it/s]
+878it [00:00, 13063.45it/s]
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -276,12 +283,12 @@ The provided variables allow tracking the following phenomena
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-            Loop over 876 objects
-        00:00:06.86
+            Loop over 877 objects
+        00:00:02.51
 
 Save the object masks into a joint netCDF
 Saved: moaap_output/202107_ERA5_ObjectMasks__dt-1h_MOAAP-masks.nc
-        00:00:06.07
+        00:00:04.96
 </pre></div></div>
 </div>
 </section>
@@ -373,7 +380,6 @@ object_split = moaap(
     tb   = data_vars[&#39;Tb&#39;].values,
     DataName = DataName,
     OutputFolder = OutputFolder,
-    js_min_anomaly = 12,
     MinTimeJS = 12,
     analyze_mcs_history = True
 )
@@ -406,75 +412,95 @@ The provided variables allow tracking the following phenomena
 ---------------------------
 
 ======&gt; track jetstream
-            25 object found
+    track jet streams
         break up long living jety objects with the watershed method
-    Processing 4 chunks with 0.11 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.15 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
-            Loop over 21 objects
-        00:01:13.59
+            Loop over 19 objects
+        00:00:13.36
 ======&gt; track moisture streams and atmospheric rivers (ARs)
-            650 object found
         break up long living MS objects with watershed
-    Processing 4 chunks with 0.12 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.17 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
             Loop over 13 objects
-        00:00:13.42
+        00:00:09.76
 ======&gt; track IVT streams and atmospheric rivers (ARs)
-        149 object found
         break up long living IVT objects with watershed
-    Processing 4 chunks with 0.12 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.17 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
             Loop over 11 objects
         check if MSs quallify as ARs
-        00:00:00.62
-            Loop over 4 objects
-        00:00:09.53
+        00:00:00.56
+            Loop over 5 objects
+        00:00:05.82
 ======&gt; identify frontal zones
         56194 object found
-        00:00:02.98
+        00:00:02.76
 ======&gt; track cyclones from PSL
         track cyclones
             70 object found
             break up long living CY objects using the watershed method
-    Processing 4 chunks with 0.07 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.09 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
         track anti-cyclones
         103 object found
             break up long living ACY objects that have many elements
-    Processing 4 chunks with 0.04 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.06 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
             Loop over 34 objects
-            Loop over 74 objects
-        00:00:22.87
+            Loop over 72 objects
+        00:00:15.10
 ======&gt; track cyclones from Z500
     track 500 hPa cyclones
-            35 object found
         break up long living cyclones using the watershed method
-    Processing 4 chunks with 0.04 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.05 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
         connect cyclones objects over date line
     track 500 hPa anticyclones
-            22 object found
         break up long living CY objects that heve many elements
-    Processing 4 chunks with 0.04 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.05 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
         connect cyclones objects over date line
             Loop over 42 objects
             Loop over 38 objects
     Check if cyclones qualify as Cut Off Low (COL)
-            Loop over 28 objects
-        00:00:18.20
+            Loop over 26 objects
+        00:00:09.04
 ======&gt; &#39;check if Tb objects qualify as MCS (or selected storm type)
         track  clouds
         break up long living cloud shield objects with watershed that have many elements
-    Processing 4 chunks with 0.01 GB halo buffer...
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.01 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
 </pre></div></div>
@@ -484,7 +510,7 @@ The provided variables allow tracking the following phenomena
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-4284it [00:01, 3035.72it/s]
+4284it [00:00, 8564.86it/s]
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -494,16 +520,20 @@ The provided variables allow tracking the following phenomena
 <div class="highlight"><pre>
     Minimum distance between TB minima for watershed analysis: 8 grid cells
 Pre-calculating all label 2D centers at each time slice...
-    Printing union array: {1: 1, 2: 2, 3: 3, 4: 4, 5: 27, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 11, 12: 12, 13: 13, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18, 19: 19, 20: 20, 21: 17, 22: 22, 23: 11, 24: 24, 25: 17, 26: 11, 27: 27, 28: 28, 29: 29, 30: 30, 31: 31, 32: 32, 33: 33, 34: 34, 35: 35, 36: 27, 37: 37, 38: 38, 39: 39, 40: 40, 41: 41, 42: 42, 43: 43, 44: 75, 45: 45, 46: 46, 47: 47, 48: 48, 49: 74, 50: 50, 51: 51, 52: 52, 53: 53, 54: 54, 55: 55, 56: 56, 57: 57, 58: 71, 59: 59, 60: 71, 61: 61, 62: 82, 63: 63, 64: 64, 65: 65, 66: 66, 67: 38, 68: 68, 69: 69, 70: 70, 71: 71, 72: 72, 73: 73, 74: 74, 75: 75, 76: 76, 77: 77, 78: 78, 79: 79, 80: 70, 81: 81, 82: 82, 83: 70, 84: 84, 85: 85, 86: 86, 87: 87, 88: 85, 89: 89, 90: 90, 91: 91, 92: 92, 93: 93, 94: 98, 95: 95, 96: 98, 97: 97, 98: 98, 99: 99, 100: 98}
-    Printing events: [{&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 17, &#39;from_label&#39;: 5, &#39;to_label&#39;: 36, &#39;distance&#39;: 5.115635586836638}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 5, &#39;from_label&#39;: 17, &#39;to_label&#39;: 21, &#39;distance&#39;: 7.895068039534365}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 6, &#39;from_label&#39;: 11, &#39;to_label&#39;: 23, &#39;distance&#39;: 6.947773465107275}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 11, &#39;from_label&#39;: 17, &#39;to_label&#39;: 25, &#39;distance&#39;: 4.585820762416036}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 8, &#39;from_label&#39;: 23, &#39;to_label&#39;: 26, &#39;distance&#39;: 7.571373352598878}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 27, &#39;to_label&#39;: 36, &#39;distance&#39;: 3.9510898637098903}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 44, &#39;to_label&#39;: 75, &#39;distance&#39;: 7.207502665814491}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 15, &#39;from_label&#39;: 49, &#39;to_label&#39;: 74, &#39;distance&#39;: 7.483595783427103}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 17, &#39;from_label&#39;: 58, &#39;to_label&#39;: 71, &#39;distance&#39;: 6.733608498457157}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 3, &#39;from_label&#39;: 58, &#39;to_label&#39;: 60, &#39;distance&#39;: 5.082379998062819}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 62, &#39;to_label&#39;: 82, &#39;distance&#39;: 4.735283847534825}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 5, &#39;from_label&#39;: 38, &#39;to_label&#39;: 67, &#39;distance&#39;: 4.320364989970911}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 12, &#39;from_label&#39;: 70, &#39;to_label&#39;: 80, &#39;distance&#39;: 3.3200467984355484}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 11, &#39;from_label&#39;: 62, &#39;to_label&#39;: 82, &#39;distance&#39;: 5.570105663046757}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 80, &#39;to_label&#39;: 83, &#39;distance&#39;: 3.789013357356028}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 6, &#39;from_label&#39;: 85, &#39;to_label&#39;: 88, &#39;distance&#39;: 3.7188762193657863}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 94, &#39;to_label&#39;: 100, &#39;distance&#39;: 7.869078571903553}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 6, &#39;from_label&#39;: 94, &#39;to_label&#39;: 96, &#39;distance&#39;: 5.653823652192491}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 19, &#39;from_label&#39;: 96, &#39;to_label&#39;: 98, &#39;distance&#39;: 5.727349159520668}]
-    Printing histories: {1: [1], 2: [2], 3: [3], 4: [4], 27: [27, 36, 5], 6: [6], 7: [7], 8: [8], 9: [9], 10: [10], 11: [26, 11, 23], 12: [12], 13: [13], 14: [14], 15: [15], 16: [16], 17: [17, 21, 25], 18: [18], 19: [19], 20: [20], 22: [22], 24: [24], 28: [28], 29: [29], 30: [30], 31: [31], 32: [32], 33: [33], 34: [34], 35: [35], 37: [37], 38: [67, 38], 39: [39], 40: [40], 41: [41], 42: [42], 43: [43], 75: [75, 44], 45: [45], 46: [46], 47: [47], 48: [48], 74: [49, 74], 50: [50], 51: [51], 52: [52], 53: [53], 54: [54], 55: [55], 56: [56], 57: [57], 71: [58, 60, 71], 59: [59], 61: [61], 82: [82, 62], 63: [63], 64: [64], 65: [65], 66: [66], 68: [68], 69: [69], 70: [80, 83, 70], 72: [72], 73: [73], 76: [76], 77: [77], 78: [78], 79: [79], 81: [81], 84: [84], 85: [88, 85], 86: [86], 87: [87], 89: [89], 90: [90], 91: [91], 92: [92], 93: [93], 98: [96, 98, 100, 94], 95: [95], 97: [97], 99: [99]}
+    Printing union array: {1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10, 11: 5, 12: 12, 13: 5, 14: 14, 15: 15, 16: 16, 17: 17, 18: 18, 19: 19, 20: 20, 21: 21, 22: 22, 23: 42, 24: 24, 25: 25, 26: 26, 27: 39, 28: 28, 29: 29, 30: 30, 31: 31, 32: 32, 33: 33, 34: 34, 35: 35, 36: 36, 37: 35, 38: 38, 39: 39, 40: 40, 41: 35, 42: 42, 43: 43, 44: 44, 45: 38, 46: 46, 47: 47, 48: 42, 49: 38, 50: 50, 51: 51, 52: 52, 53: 53, 54: 54, 55: 55, 56: 56, 57: 78, 58: 58, 59: 59, 60: 60, 61: 61, 62: 62, 63: 63, 64: 75, 65: 65, 66: 75, 67: 67, 68: 83, 69: 69, 70: 70, 71: 71, 72: 51, 73: 73, 74: 74, 75: 75, 76: 76, 77: 77, 78: 78, 79: 79, 80: 80, 81: 81, 82: 82, 83: 83, 84: 84, 85: 85, 86: 86, 87: 87, 88: 85, 89: 89, 90: 90, 91: 91, 92: 92, 93: 93, 94: 98, 95: 95, 96: 98, 97: 97, 98: 98, 99: 99, 100: 98}
+    Printing events: [{&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 6, &#39;from_label&#39;: 5, &#39;to_label&#39;: 11, &#39;distance&#39;: 6.947773465107275}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 8, &#39;from_label&#39;: 11, &#39;to_label&#39;: 13, &#39;distance&#39;: 7.571373352598878}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 17, &#39;from_label&#39;: 23, &#39;to_label&#39;: 48, &#39;distance&#39;: 5.115635586836638}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 15, &#39;from_label&#39;: 27, &#39;to_label&#39;: 39, &#39;distance&#39;: 7.483595783427103}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 5, &#39;from_label&#39;: 35, &#39;to_label&#39;: 37, &#39;distance&#39;: 7.895068039534365}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 11, &#39;from_label&#39;: 35, &#39;to_label&#39;: 41, &#39;distance&#39;: 4.585820762416036}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 12, &#39;from_label&#39;: 38, &#39;to_label&#39;: 45, &#39;distance&#39;: 3.3200467984355484}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 42, &#39;to_label&#39;: 48, &#39;distance&#39;: 3.9510898637098903}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 45, &#39;to_label&#39;: 49, &#39;distance&#39;: 3.789013357356028}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 57, &#39;to_label&#39;: 78, &#39;distance&#39;: 7.207502665814491}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 17, &#39;from_label&#39;: 64, &#39;to_label&#39;: 75, &#39;distance&#39;: 6.733608498457157}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 3, &#39;from_label&#39;: 64, &#39;to_label&#39;: 66, &#39;distance&#39;: 5.082379998062819}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 68, &#39;to_label&#39;: 83, &#39;distance&#39;: 4.735283847534825}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 5, &#39;from_label&#39;: 51, &#39;to_label&#39;: 72, &#39;distance&#39;: 4.320364989970911}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 11, &#39;from_label&#39;: 68, &#39;to_label&#39;: 83, &#39;distance&#39;: 5.570105663046757}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 6, &#39;from_label&#39;: 85, &#39;to_label&#39;: 88, &#39;distance&#39;: 3.7188762193657863}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 14, &#39;from_label&#39;: 94, &#39;to_label&#39;: 100, &#39;distance&#39;: 7.869078571903553}, {&#39;type&#39;: &#39;split&#39;, &#39;time&#39;: 6, &#39;from_label&#39;: 94, &#39;to_label&#39;: 96, &#39;distance&#39;: 5.653823652192491}, {&#39;type&#39;: &#39;merge&#39;, &#39;time&#39;: 19, &#39;from_label&#39;: 96, &#39;to_label&#39;: 98, &#39;distance&#39;: 5.727349159520668}]
+    Printing histories: {1: [1], 2: [2], 3: [3], 4: [4], 5: [13, 11, 5], 6: [6], 7: [7], 8: [8], 9: [9], 10: [10], 12: [12], 14: [14], 15: [15], 16: [16], 17: [17], 18: [18], 19: [19], 20: [20], 21: [21], 22: [22], 42: [48, 42, 23], 24: [24], 25: [25], 26: [26], 39: [27, 39], 28: [28], 29: [29], 30: [30], 31: [31], 32: [32], 33: [33], 34: [34], 35: [41, 35, 37], 36: [36], 38: [49, 45, 38], 40: [40], 43: [43], 44: [44], 46: [46], 47: [47], 50: [50], 51: [72, 51], 52: [52], 53: [53], 54: [54], 55: [55], 56: [56], 78: [57, 78], 58: [58], 59: [59], 60: [60], 61: [61], 62: [62], 63: [63], 75: [64, 66, 75], 65: [65], 67: [67], 83: [83, 68], 69: [69], 70: [70], 71: [71], 73: [73], 74: [74], 76: [76], 77: [77], 79: [79], 80: [80], 81: [81], 82: [82], 84: [84], 85: [88, 85], 86: [86], 87: [87], 89: [89], 90: [90], 91: [91], 92: [92], 93: [93], 98: [96, 98, 100, 94], 95: [95], 97: [97], 99: [99]}
             Loop over 4284 objects
             Loop over 100 objects
-        00:00:15.10
+        00:00:07.98
 ======&gt; &#39;track high clouds in Tb field by excluding MCS objects
         track  clouds
         break up long living cloud shield objects with wathershedding
-    Processing 4 chunks with 0.02 GB halo buffer...
+    Minimum distance between TB minima for watershed analysis: 20 grid cells
+Auto-detecting number of processes: 7
+Shape of the data to watershed: (24, 721, 1440)
+Auto-configured to 2 latitude chunks and 3 longitude chunks for parallel processing.
+    Processing 6 chunks with 0.02 GB halo buffer...
     Merging chunk results...
     Applying labels in-place...
         make sure that each object has at least one grid cell with more than min_pr threshold of precipitation
@@ -514,7 +544,7 @@ Pre-calculating all label 2D centers at each time slice...
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-878it [00:00, 6234.25it/s]
+878it [00:00, 12594.99it/s]
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -522,8 +552,8 @@ Pre-calculating all label 2D centers at each time slice...
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-            Loop over 876 objects
-        00:00:07.03
+            Loop over 877 objects
+        00:00:02.62
 ======&gt; Check if cyclones qualify as TCs
 </pre></div></div>
 </div>
@@ -532,7 +562,7 @@ Pre-calculating all label 2D centers at each time slice...
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 34/34 [00:00&lt;00:00, 161.51it/s]
+100%|██████████| 34/34 [00:00&lt;00:00, 187.88it/s]
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -540,11 +570,11 @@ Pre-calculating all label 2D centers at each time slice...
 </div>
 <div class="output_area docutils container">
 <div class="highlight"><pre>
-        00:00:01.33
+        00:00:01.04
 
 Save the object masks into a joint netCDF
 Saved: moaap_output/202107_ERA5_ObjectMasks__dt-1h_MOAAP-masks.nc
-        00:00:33.32
+        00:00:28.78
 Tracking complete.
 </pre></div></div>
 </div>
@@ -556,7 +586,7 @@ Tracking complete.
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Generate Frames and GIF
@@ -648,7 +678,7 @@ for tt in tqdm(range(len(time_datetime))):
 
 # Create GIF
 print(&quot;Creating GIF...&quot;)
-frames = [Image.open(image) for image in sorted(glob.glob(f&quot;{images_dir}/*.jpg&quot;))]
+frames = [Image.open(image) for image in sorted(glob.glob(f&quot;{images_dir}/*_frame.jpg&quot;))]
 gif_path = &quot;phenomenon.gif&quot;
 if frames:
     frames[0].save(gif_path, format=&quot;GIF&quot;, append_images=frames[1:],
@@ -672,7 +702,7 @@ Generating frames...
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-100%|██████████| 24/24 [00:24&lt;00:00,  1.01s/it]
+100%|██████████| 24/24 [00:16&lt;00:00,  1.44it/s]
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
@@ -685,7 +715,7 @@ GIF saved to phenomenon.gif
 </pre></div></div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Display the GIF
@@ -716,7 +746,7 @@ else:
 <li><p><strong>Parallel 3D Watershedding</strong>: Applied on the space-time cube using parallel processing for large datasets.</p></li>
 </ol>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def generate_synthetic_moving_cells(seed: int = 42):
@@ -797,7 +827,7 @@ Generated synthetic data shape: (24, 100, 100)
 <p>To run the parallel 3D code instead of the sequential version, set n_chunks_lat or n_chunks_lon to values greater than 1. The parallel code will also be called automatically if the memory overhead of the sequential code is larger than the available system memory.</p>
 <p>The parallel code divides the data into spatial chunks with some overlap to ensure continuity of objects across chunk boundaries. In the end, the chunks are merged back together, leading to a little slower performance compared to the sequential version.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span># Parameters
@@ -866,8 +896,8 @@ Running 2D Watershedding...
 </div>
 <div class="output_area stderr docutils container">
 <div class="highlight"><pre>
-  0%|          | 0/24 [00:00&lt;?, ?it/s]100%|██████████| 24/24 [00:00&lt;00:00, 178.57it/s]
-100%|██████████| 23/23 [00:00&lt;00:00, 3199.00it/s]
+100%|██████████| 24/24 [00:00&lt;00:00, 304.65it/s]
+100%|██████████| 23/23 [00:00&lt;00:00, 3940.24it/s]
 </pre></div></div>
 </div>
 <div class="nboutput docutils container">
@@ -876,6 +906,7 @@ Running 2D Watershedding...
 <div class="output_area docutils container">
 <div class="highlight"><pre>
 Running 3D Watershedding...
+Only one chunk specified, running serial version.
 Running parallel 3D Watershedding...
     Processing 4 chunks with 0.00 GB halo buffer...
 </pre></div></div>
@@ -905,7 +936,7 @@ Max Parallel 3D Objects: 11
 <h3>Visualization and Comparison<a class="headerlink" href="#Visualization-and-Comparison" title="Link to this heading"></a></h3>
 <p>We create a side-by-side animation to compare the raw input, the 2D result, and the 3D result.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>def make_comparison_animation(raw_data, objects_2d, objects_3d, objects_3d_pll):
@@ -1154,42 +1185,42 @@ input[type=range].anim-slider {
 </style>
 
 <div class="animation">
-  <img id="_anim_imgd205dd3f508346a79dccc54e987ceae0">
+  <img id="_anim_img5d304d48564c4f72822e0c94fd050129">
   <div class="anim-controls">
-    <input id="_anim_sliderd205dd3f508346a79dccc54e987ceae0" type="range" class="anim-slider"
+    <input id="_anim_slider5d304d48564c4f72822e0c94fd050129" type="range" class="anim-slider"
            name="points" min="0" max="1" step="1" value="0"
-           oninput="animd205dd3f508346a79dccc54e987ceae0.set_frame(parseInt(this.value));">
+           oninput="anim5d304d48564c4f72822e0c94fd050129.set_frame(parseInt(this.value));">
     <div class="anim-buttons">
-      <button title="Decrease speed" aria-label="Decrease speed" onclick="animd205dd3f508346a79dccc54e987ceae0.slower()">
+      <button title="Decrease speed" aria-label="Decrease speed" onclick="anim5d304d48564c4f72822e0c94fd050129.slower()">
           <i class="fa fa-minus"></i></button>
-      <button title="First frame" aria-label="First frame" onclick="animd205dd3f508346a79dccc54e987ceae0.first_frame()">
+      <button title="First frame" aria-label="First frame" onclick="anim5d304d48564c4f72822e0c94fd050129.first_frame()">
         <i class="fa fa-fast-backward"></i></button>
-      <button title="Previous frame" aria-label="Previous frame" onclick="animd205dd3f508346a79dccc54e987ceae0.previous_frame()">
+      <button title="Previous frame" aria-label="Previous frame" onclick="anim5d304d48564c4f72822e0c94fd050129.previous_frame()">
           <i class="fa fa-step-backward"></i></button>
-      <button title="Play backwards" aria-label="Play backwards" onclick="animd205dd3f508346a79dccc54e987ceae0.reverse_animation()">
+      <button title="Play backwards" aria-label="Play backwards" onclick="anim5d304d48564c4f72822e0c94fd050129.reverse_animation()">
           <i class="fa fa-play fa-flip-horizontal"></i></button>
-      <button title="Pause" aria-label="Pause" onclick="animd205dd3f508346a79dccc54e987ceae0.pause_animation()">
+      <button title="Pause" aria-label="Pause" onclick="anim5d304d48564c4f72822e0c94fd050129.pause_animation()">
           <i class="fa fa-pause"></i></button>
-      <button title="Play" aria-label="Play" onclick="animd205dd3f508346a79dccc54e987ceae0.play_animation()">
+      <button title="Play" aria-label="Play" onclick="anim5d304d48564c4f72822e0c94fd050129.play_animation()">
           <i class="fa fa-play"></i></button>
-      <button title="Next frame" aria-label="Next frame" onclick="animd205dd3f508346a79dccc54e987ceae0.next_frame()">
+      <button title="Next frame" aria-label="Next frame" onclick="anim5d304d48564c4f72822e0c94fd050129.next_frame()">
           <i class="fa fa-step-forward"></i></button>
-      <button title="Last frame" aria-label="Last frame" onclick="animd205dd3f508346a79dccc54e987ceae0.last_frame()">
+      <button title="Last frame" aria-label="Last frame" onclick="anim5d304d48564c4f72822e0c94fd050129.last_frame()">
           <i class="fa fa-fast-forward"></i></button>
-      <button title="Increase speed" aria-label="Increase speed" onclick="animd205dd3f508346a79dccc54e987ceae0.faster()">
+      <button title="Increase speed" aria-label="Increase speed" onclick="anim5d304d48564c4f72822e0c94fd050129.faster()">
           <i class="fa fa-plus"></i></button>
     </div>
-    <form title="Repetition mode" aria-label="Repetition mode" action="#n" name="_anim_loop_selectd205dd3f508346a79dccc54e987ceae0"
+    <form title="Repetition mode" aria-label="Repetition mode" action="#n" name="_anim_loop_select5d304d48564c4f72822e0c94fd050129"
           class="anim-state">
-      <input type="radio" name="state" value="once" id="_anim_radio1_d205dd3f508346a79dccc54e987ceae0"
+      <input type="radio" name="state" value="once" id="_anim_radio1_5d304d48564c4f72822e0c94fd050129"
              >
-      <label for="_anim_radio1_d205dd3f508346a79dccc54e987ceae0">Once</label>
-      <input type="radio" name="state" value="loop" id="_anim_radio2_d205dd3f508346a79dccc54e987ceae0"
+      <label for="_anim_radio1_5d304d48564c4f72822e0c94fd050129">Once</label>
+      <input type="radio" name="state" value="loop" id="_anim_radio2_5d304d48564c4f72822e0c94fd050129"
              checked>
-      <label for="_anim_radio2_d205dd3f508346a79dccc54e987ceae0">Loop</label>
-      <input type="radio" name="state" value="reflect" id="_anim_radio3_d205dd3f508346a79dccc54e987ceae0"
+      <label for="_anim_radio2_5d304d48564c4f72822e0c94fd050129">Loop</label>
+      <input type="radio" name="state" value="reflect" id="_anim_radio3_5d304d48564c4f72822e0c94fd050129"
              >
-      <label for="_anim_radio3_d205dd3f508346a79dccc54e987ceae0">Reflect</label>
+      <label for="_anim_radio3_5d304d48564c4f72822e0c94fd050129">Reflect</label>
     </form>
   </div>
 </div>
@@ -1199,9 +1230,9 @@ input[type=range].anim-slider {
   /* Instantiate the Animation class. */
   /* The IDs given should match those used in the template above. */
   (function() {
-    var img_id = "_anim_imgd205dd3f508346a79dccc54e987ceae0";
-    var slider_id = "_anim_sliderd205dd3f508346a79dccc54e987ceae0";
-    var loop_select_id = "_anim_loop_selectd205dd3f508346a79dccc54e987ceae0";
+    var img_id = "_anim_img5d304d48564c4f72822e0c94fd050129";
+    var slider_id = "_anim_slider5d304d48564c4f72822e0c94fd050129";
+    var loop_select_id = "_anim_loop_select5d304d48564c4f72822e0c94fd050129";
     var frames = new Array(24);
 
   frames[0] = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAB9AAAAH0CAYAAABl1bZjAAAAOnRFWHRTb2Z0d2FyZQBNYXRwbG90\
@@ -22201,7 +22232,7 @@ AABIkv4fz7hLNbqbWocAAAAASUVORK5CYII=\
     /* set a timeout to make sure all the above elements are created before
        the object is initialized. */
     setTimeout(function() {
-        animd205dd3f508346a79dccc54e987ceae0 = new Animation(frames, img_id, slider_id, 200.0,
+        anim5d304d48564c4f72822e0c94fd050129 = new Animation(frames, img_id, slider_id, 200.0,
                                  loop_select_id);
     }, 0);
   })()

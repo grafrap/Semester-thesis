@@ -772,7 +772,7 @@
 <span class="sd">    data : np.ndarray</span>
 <span class="sd">        3D matrix with data for watershedding</span>
 <span class="sd">    object_threshold : float</span>
-<span class="sd">        Float to create binary object mast</span>
+<span class="sd">        Float to create binary object mask</span>
 <span class="sd">    max_treshold : float</span>
 <span class="sd">        Value for identifying max. points for spreading</span>
 <span class="sd">    min_dist : int</span>
@@ -800,6 +800,19 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> 
+
+    <span class="k">if</span> <span class="n">n_chunks_lat</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">n_chunks_lon</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Only one chunk specified, running serial version.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">watershed_3d_overlap</span><span class="p">(</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">object_threshold</span><span class="p">,</span>
+            <span class="n">max_treshold</span><span class="p">,</span>
+            <span class="n">min_dist</span><span class="p">,</span>
+            <span class="n">dT</span><span class="p">,</span>
+            <span class="n">mintime</span><span class="p">,</span>
+            <span class="n">connectLon</span><span class="p">,</span>
+            <span class="n">extend_size_ratio</span>
+        <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">n_chunks_lat</span> <span class="o">==</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n_chunks_lon</span> <span class="o">==</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">num_proc</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">-</span> <span class="mi">1</span> <span class="c1"># get one less for system processes</span>
