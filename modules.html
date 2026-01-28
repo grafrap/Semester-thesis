@@ -798,9 +798,10 @@ This has to be big for large objects (e.g., ARs) and can be smaller for e.g., MC
 <li><p><strong>connectLon</strong> (<em>int</em><em>, </em><em>optional</em>) – Do we have to track features over the date line?, by default 0</p></li>
 <li><p><strong>extend_size_ratio</strong> (<em>float</em><em>, </em><em>optional</em>) – If connectLon = 1 this key is setting the ratio of the zonal domain added to the watershedding.
 This has to be big for large objects (e.g., ARs) and can be smaller for e.g., MCSs, by default 0.25</p></li>
-<li><p><strong>n_chunks_lat</strong> (<em>int</em>) – Number of chunks to split latitude dimension</p></li>
-<li><p><strong>n_chunks_lon</strong> (<em>int</em>) – Number of chunks to split longitude dimension</p></li>
+<li><p><strong>n_chunks_lat</strong> (<em>int</em><em>, </em><em>default=None</em>) – Number of chunks to split latitude dimension, if None, auto-detects based on CPU count</p></li>
+<li><p><strong>n_chunks_lon</strong> (<em>int</em><em>, </em><em>default=None</em>) – Number of chunks to split longitude dimension</p></li>
 <li><p><strong>overlap_cells</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of overlapping cells between chunks. If None, uses min_dist * 2</p></li>
+<li><p><strong>mp_method</strong> (<em>str</em><em>, </em><em>optional</em>) – Multiprocessing method: ‘fork’, ‘spawn’, or ‘auto’ (default). ‘auto’ chooses based on data size and system memory.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

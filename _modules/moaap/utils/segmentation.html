@@ -786,12 +786,14 @@
 <span class="sd">    extend_size_ratio : float, optional</span>
 <span class="sd">        If connectLon = 1 this key is setting the ratio of the zonal domain added to the watershedding. </span>
 <span class="sd">        This has to be big for large objects (e.g., ARs) and can be smaller for e.g., MCSs, by default 0.25</span>
-<span class="sd">    n_chunks_lat : int</span>
-<span class="sd">        Number of chunks to split latitude dimension</span>
-<span class="sd">    n_chunks_lon : int</span>
+<span class="sd">    n_chunks_lat : int, default=None</span>
+<span class="sd">        Number of chunks to split latitude dimension, if None, auto-detects based on CPU count</span>
+<span class="sd">    n_chunks_lon : int, default=None</span>
 <span class="sd">        Number of chunks to split longitude dimension</span>
 <span class="sd">    overlap_cells : int, optional</span>
 <span class="sd">        Number of overlapping cells between chunks. If None, uses min_dist * 2</span>
+<span class="sd">    mp_method : str, optional</span>
+<span class="sd">        Multiprocessing method: &#39;fork&#39;, &#39;spawn&#39;, or &#39;auto&#39; (default). &#39;auto&#39; chooses based on data size and system memory.</span>
 <span class="sd">    </span>
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
